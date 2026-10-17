@@ -16,12 +16,13 @@ Safety, every time:
 """
 import csv, json, os, re, sys, time
 from datetime import datetime
-from pal import BASE, CSV_OUT, SNAP, HERE, session
+from pal import BASE, CSV_OUT, SNAP, HERE, session, read_csv, safe_uuid, shown, new_run_dir
+import hashlib
 
 FIELDS = ["name", "description", "price", "cost"]
 URL = {"service": f"{BASE}/services/", "material": f"{BASE}/materials/"}
 EXCEL_ERRORS = ("#NAME?", "#VALUE!", "#REF!", "#N/A", "#DIV/0!", "#NUM!", "#NULL!")
-MONEY = re.compile(r"^-?\$?-?(\d{1,3}(,\d{3})+|\d+)?(\.\d{1,2})?$")
+MONEY = re.compile(r"^\$?((\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?|\.\d{1,2})$")  # no negatives, no stray signs
 DATEISH = re.compile(r"^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$|^\d{1,2}-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)$", re.I)
 
 
@@ -109,6 +110,8 @@ def refuse_reason(field, new, old):
         c = cents(new)
         if c is None:
             return f"{field} {new!r} is not a plain dollar amount"
+        if field == "price" and cents(old) and c > cents(old) * 10:
+            return f"price jumps more than 10 times ({old} -> {new}), check for a typo or change it inside HCP"
         if field == "price" and cents(old) and c < cents(old) * 0.10:
             return f"price drops over 90% ({old} -> {new}), fix it or change it inside HCP"
     if field == "name" and DATEISH.match((new or "").strip()):
@@ -123,8 +126,10 @@ def plan():
         sys.exit("Run 'python pal.py pull' first.")
     snap = json.load(open(SNAP, encoding="utf-8"))["rows"]
     todo, refused, seen = [], [], set()
-    for r in csv.DictReader(open(CSV_OUT, encoding="utf-8-sig")):
+    for r in read_csv(CSV_OUT):
         u = r.get("uuid", "")
+        if u and u in snap:
+            safe_uuid(u)
         old = snap.get(u)
         if not old or r.get("type") not in URL:
             continue  # new or unknown rows are ignored: this tool edits, it never creates
@@ -149,19 +154,24 @@ def show(f, a, b):
 
 def apply(todo, refused, dry):
     for name, why in refused:
-        print("REFUSED", name, "-", why)
-    run = os.path.join(HERE, "backups", datetime.now().strftime("%Y%m%d_%H%M%S") + ("_preview" if dry else ""))
-    os.makedirs(run)
+        print("REFUSED", shown(name), "-", why)
+    h = hashlib.sha256(json.dumps([[k, u, c] for k, u, _, c in todo], sort_keys=True).encode()).hexdigest()
+    stamp = os.path.join(HERE, ".push_preview.json")
+    if dry:
+        json.dump({"hash": h}, open(stamp, "w"))
+    elif not os.path.exists(stamp) or json.load(open(stamp)).get("hash") != h:
+        sys.exit("Your spreadsheet changed since your last preview (or there was no preview). Preview again first.")
+    run = new_run_dir("_preview" if dry else "")
     s = session(); log = []
     for kind, uuid, old, ch in todo:
         live = fetch(s, kind, uuid)
         if live is None:
-            print("GONE from HCP, skipped:", old["name"]); continue
+            print("GONE from HCP, skipped:", shown(old["name"])); continue
         json.dump({"type": kind, "item": live}, open(os.path.join(run, uuid + ".json"), "x", encoding="utf-8"), ensure_ascii=True)
         lr = live_row(live)
         if any(not same(f, lr[f], old[f]) for f in ch):
-            print("SKIP (changed in HCP since your download):", old["name"]); log.append({"uuid": uuid, "result": "skipped"}); continue
-        print(("WOULD CHANGE " if dry else "CHANGE ") + old["name"])
+            print("SKIP (changed in HCP since your download):", shown(old["name"])); log.append({"uuid": uuid, "result": "skipped"}); continue
+        print(("WOULD CHANGE " if dry else "CHANGE ") + shown(old["name"]))
         for f, v in ch.items():
             show(f, old[f], v)
         if dry:
@@ -223,22 +233,22 @@ def restore(folder, dry, mode="restore"):
         if not os.path.exists(os.path.join(folder, "full_pricebook_from_hcp.json")):
             sys.exit("That is not an original download folder. Pick one inside original_backups.")
         items = saved_items(folder)
-    run = os.path.join(HERE, "backups", datetime.now().strftime("%Y%m%d_%H%M%S") + ("_restore_preview" if dry else "_restore"))
-    os.makedirs(run)
+    run = new_run_dir("_restore_preview" if dry else "_restore")
     s = session(); n = gone = later = 0; log = []
     for kind, it in items:
+        safe_uuid(it.get("uuid"))
         want = raw4(it)
         live = fetch(s, kind, it["uuid"])
         if live is None:
-            gone += 1; print("GONE from HCP (deleted there, this tool cannot re-create it):", want["name"]); continue
+            gone += 1; print("GONE from HCP (deleted there, this tool cannot re-create it):", shown(want["name"])); continue
         cur = raw4(live)
         if it["uuid"] in wrote and it["uuid"] not in failed and any(norm(cur[f]) != norm(v) for f, v in wrote[it["uuid"]].items()):
-            later += 1; print("SKIP (changed again after that push, left alone):", want["name"]); continue
+            later += 1; print("SKIP (changed again after that push, left alone):", shown(want["name"])); continue
         diff = {f: want[f] for f in FIELDS if cur[f] != want[f]}
         if not diff:
             continue
         n += 1
-        print(("WOULD RESTORE " if dry else "RESTORE ") + want["name"], "(" + ", ".join(diff) + ")")
+        print(("WOULD RESTORE " if dry else "RESTORE ") + shown(want["name"]), "(" + ", ".join(diff) + ")")
         if dry:
             continue
         json.dump({"type": kind, "item": live}, open(os.path.join(run, it["uuid"] + ".json"), "x", encoding="utf-8"), ensure_ascii=True)

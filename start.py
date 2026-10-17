@@ -52,6 +52,9 @@ STEPS = [
      "Every download saves a permanent, read-only copy of your whole price book in original_backups/<date>. "
      "This puts every item back to that copy: name, description, price and cost. You see a preview first. "
      "Items deleted inside HCP cannot be re-created by this tool."),
+    ("Log out (delete the saved HCP login from this computer)", ["pal.py", "logout"],
+     "Deletes the saved Housecall Pro login. Do this on a shared computer or when you are done. "
+     "You can log in again any time."),
 ]
 
 
@@ -107,7 +110,7 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.2 Basic   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.3 Basic   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
            "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",

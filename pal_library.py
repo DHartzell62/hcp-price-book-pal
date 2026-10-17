@@ -12,7 +12,7 @@ Careful by design:
   * services only; parts and materials are left alone
 """
 import csv, os, re, sys
-from pal import CSV_OUT, COLS, HERE, keep_copy
+from pal import CSV_OUT, COLS, HERE, keep_copy, read_csv, write_csv
 from library_hvac import ENTRIES
 
 SUGG = os.path.join(HERE, "suggestions.csv")
@@ -54,7 +54,7 @@ def best_match(text):
 
 
 def suggest():
-    rows = [r for r in csv.DictReader(open(CSV_OUT, encoding="utf-8-sig")) if r["type"] == "service"]
+    rows = [r for r in read_csv(CSV_OUT) if r["type"] == "service"]
     out = []
     for r in rows:
         name = r["name"]
@@ -73,8 +73,7 @@ def suggest():
                         "current_description": desc, "suggested_description": new_desc, "use_description": "",
                         "matched_on": word})
     keep_copy(SUGG)
-    with open(SUGG, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=SCOLS); w.writeheader(); w.writerows(out)
+    write_csv(SUGG, out, SCOLS)
     names = sum(bool(x["suggested_name"]) for x in out); descs = sum(bool(x["suggested_description"]) for x in out)
     print(f"{len(out)} services have a suggestion: {names} better names, {descs} descriptions for empty or short ones.")
     print(f"Open {SUGG}, put Y in use_name / use_description on the ones you want, save, then run: python pal_library.py accept")
@@ -83,20 +82,21 @@ def suggest():
 def accept():
     if not os.path.exists(SUGG):
         sys.exit("Run 'python pal_library.py suggest' first.")
-    picks = {s["uuid"]: s for s in csv.DictReader(open(SUGG, encoding="utf-8-sig"))}
-    rows = list(csv.DictReader(open(CSV_OUT, encoding="utf-8-sig")))
+    picks = {s["uuid"]: s for s in read_csv(SUGG)}
+    rows = list(read_csv(CSV_OUT))
     n = d = 0
     for r in rows:
         s = picks.get(r["uuid"])
         if not s:
             continue
+        if s["current_name"] != r["name"]:
+            continue  # the item changed since these suggestions were made: run suggest again
         if s["use_name"].strip().upper().startswith("Y") and s["suggested_name"]:
             r["name"] = s["suggested_name"]; n += 1
         if s["use_description"].strip().upper().startswith("Y") and s["suggested_description"]:
             r["description"] = s["suggested_description"]; d += 1
     keep_copy(CSV_OUT)
-    with open(CSV_OUT, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=COLS); w.writeheader(); w.writerows(rows)
+    write_csv(CSV_OUT, rows, COLS)
     print(f"Took {n} new names and {d} new descriptions into pricebook.csv.")
     print("Next: preview with 'python pal_push.py --preview' (menu: Preview my changes) and read every line.")
 
@@ -106,7 +106,7 @@ MISSING = os.path.join(HERE, "missing_services.csv")
 
 def missing():
     """Library services your price book does not have yet, ready for you to price."""
-    have = [r["name"] for r in csv.DictReader(open(CSV_OUT, encoding="utf-8-sig"))
+    have = [r["name"] for r in read_csv(CSV_OUT)
             if r["type"] == "service" and not r["name"].upper().startswith("ZZ")]
     out = []
     for e in ENTRIES:
@@ -114,8 +114,7 @@ def missing():
             continue
         out.append({"group": e["group"], "name": e["name"], "description": e["description"], "your_price": "", "your_cost": "", "taxable": ""})
     keep_copy(MISSING)
-    with open(MISSING, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=["group", "name", "description", "your_price", "your_cost", "taxable"]); w.writeheader(); w.writerows(out)
+    write_csv(MISSING, out, ["group", "name", "description", "your_price", "your_cost", "taxable"])
     print(f"{len(out)} of {len(ENTRIES)} common services may be missing from your price book. List: {MISSING}")
     print("Check each one first: you may already have it under a different name.")
     print("Put your price in your_price on the ones you offer (taxable: Y if you charge tax), then use the menu step 'Add the missing services I priced'.")

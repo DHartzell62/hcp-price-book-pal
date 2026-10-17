@@ -1,5 +1,14 @@
 # Versions
 
+## v1.3 "Basic" (2026-10-17) - security release
+- Creates are never retried; if one fails, anything HCP made is found and removed, and every delete is confirmed.
+- What you preview is exactly what is sent: an edit saved after the preview is refused.
+- The HCP login is kept outside the tool folder (AppData\Local\HCPPriceBookPal) and never follows a redirect; new "Log out" step.
+- Excel formula injection blocked in every spreadsheet the tool writes.
+- Negative prices and 10x price jumps refused; every item id checked; paging capped; printed names cleaned.
+- Remove only touches items from that add run, still in the tool's category and unchanged.
+- Exact package versions pinned. 46 offline tests.
+
 ## v1.2 "Basic" (2026-10-17)
 - Add the missing services you priced: one category "Added by Price Book Pal", preview first, typed YES.
 - New services are created with online booking OFF and checked (HCP turns booking on by default for new services).

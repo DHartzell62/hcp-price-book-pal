@@ -8,7 +8,7 @@
 Nothing here touches HCP. You review pricebook.csv, then pal_push.py previews and applies.
 """
 import csv, glob, io, os, re, sys
-from pal import CSV_OUT, COLS, HERE, keep_copy
+from pal import CSV_OUT, COLS, HERE, keep_copy, read_csv, write_csv
 
 PACKS = os.path.join(HERE, "ai_packs")
 CHUNK = 60  # rows per AI pack, small enough for a free ChatGPT/Claude chat
@@ -29,13 +29,12 @@ order as a CSV with the same header, inside one code block, and nothing else.
 
 
 def load():
-    return list(csv.DictReader(open(CSV_OUT, encoding="utf-8-sig")))
+    return list(read_csv(CSV_OUT))
 
 
 def save(rows, path=CSV_OUT):
     keep_copy(path)
-    with open(path, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=COLS); w.writeheader(); w.writerows(rows)
+    write_csv(path, rows, COLS)
 
 
 def tidy(t):

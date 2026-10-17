@@ -1,4 +1,4 @@
-# HCP Price Book Pal v1.2 "Basic"
+# HCP Price Book Pal v1.3 "Basic"
 
 Free from Dave Hartzell, Hartzell's Heat & Air, Kingfisher, Oklahoma. Questions or anything this tool does not do: call 405-375-4822.
 
@@ -14,14 +14,14 @@ It downloads your Housecall Pro price book (services and materials) to a spreads
 - **Build what is missing:** see common services your price book may not have yet, with descriptions ready to use. Put in your own price and the tool adds them, with online booking OFF until you turn it on. Each add can be removed again.
 
 ## Your login stays yours
-Step 1 opens HCP's own login page in a browser. You type your password there. The tool keeps the login on your computer (the `hcp_profile` folder) and sends it nowhere else. Delete that folder to log out.
+Step 1 opens HCP's own login page in a browser. You type your password there. The tool keeps the login on your computer, outside the tool folder (in your Windows user folder under AppData\Local\HCPPriceBookPal), so sharing or zipping the tool folder never shares your login. It is sent only to Housecall Pro. Use "Log out" in the menu to delete it.
 
 ## Safety
 - Nothing goes to HCP until you pick "Send my changes", see the preview, and type YES.
-- Only the name, description, price and cost of rows you changed are written. New rows are ignored: this tool edits, it never creates or deletes.
+- Editing writes only the name, description, price and cost of rows you changed; new rows in the spreadsheet are ignored. The only steps that create or delete are "Add the missing services I priced" and "Remove services I added", and they only touch services in the "Added by Price Book Pal" category.
 - If something changed in HCP since your download, that row is skipped, not overwritten.
-- Every item is backed up before it changes (`backups` folder) and read back after. Step 8 undoes a push.
-- When the AI rewrites descriptions, any row where it changed a name or a price is refused.
+- Every item is backed up before it changes (`backups` folder) and read back after. "Undo one push" reverses a push, and "Put EVERYTHING back" restores a whole original download.
+- When the AI rewrites descriptions, any row where it changed the name is refused, and prices and costs are never sent to the AI.
 
 ## Fine print
 This uses the same private connection HCP's website uses. It is not made or supported by Housecall Pro, and HCP can change their site and break it. Use it at your own risk, try a few items first, and check your price book in HCP after.

@@ -24,11 +24,11 @@ class FakeHCP:
     """services + materials in two categories; optional faults."""
     def __init__(self):
         self.items = {
-            "olit_1": {"uuid": "olit_1", "name": "AC Tune-Up", "description": "Line one\r\n  indented  table", "price": 22900, "cost": 18000, "duration": 60},
-            "olit_2": {"uuid": "olit_2", "name": "Furnace Check", "description": "", "price": 21000, "cost": 0, "duration": 30},
-            "pbmat_1": {"uuid": "pbmat_1", "name": "Filter 16x25", "description": "Pleated filter  ", "price": 1999, "cost": 650},
+            "olit_11111111111111111111111111111111": {"uuid": "olit_11111111111111111111111111111111", "name": "AC Tune-Up", "description": "Line one\r\n  indented  table", "price": 22900, "cost": 18000, "duration": 60},
+            "olit_22222222222222222222222222222222": {"uuid": "olit_22222222222222222222222222222222", "name": "Furnace Check", "description": "", "price": 21000, "cost": 0, "duration": 30},
+            "pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {"uuid": "pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "name": "Filter 16x25", "description": "Pleated filter  ", "price": 1999, "cost": 650},
         }
-        self.kind = {"olit_1": "service", "olit_2": "service", "pbmat_1": "material"}
+        self.kind = {"olit_11111111111111111111111111111111": "service", "olit_22222222222222222222222222222222": "service", "pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": "material"}
         self.ignore_patch = False
         self.patches = 0
         self.reset_on_patch = False
@@ -98,6 +98,11 @@ def edit(uuid, **kw):
         if r["uuid"] == uuid: r.update(kw)
     write(rs)
 def originals(): return sorted(os.listdir(pal.ORIGINALS))
+def push_apply():
+    pal_push.apply(*pal_push.plan(), dry=True); pal_push.apply(*pal_push.plan(), dry=False)
+def add_apply():
+    import pal_create
+    pal_create.add(dry=True); pal_create.add(dry=False)
 
 
 @test("pull writes csv, snapshot and a read-only original backup")
@@ -112,20 +117,20 @@ def _():
 
 @test("preview writes nothing to HCP")
 def _():
-    pal.pull(); edit("olit_1", description="NEW"); pal_push.apply(*pal_push.plan(), dry=True)
-    assert HCP.patches == 0 and HCP.items["olit_1"]["description"].startswith("Line one")
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="NEW"); pal_push.apply(*pal_push.plan(), dry=True)
+    assert HCP.patches == 0 and HCP.items["olit_11111111111111111111111111111111"]["description"].startswith("Line one")
 
 @test("apply changes only the edited field, others untouched")
 def _():
-    pal.pull(); before = copy.deepcopy(HCP.items["olit_1"])
-    edit("olit_1", description="NEW TEXT"); pal_push.apply(*pal_push.plan(), dry=False)
-    a = HCP.items["olit_1"]
+    pal.pull(); before = copy.deepcopy(HCP.items["olit_11111111111111111111111111111111"])
+    edit("olit_11111111111111111111111111111111", description="NEW TEXT"); push_apply()
+    a = HCP.items["olit_11111111111111111111111111111111"]
     assert a["description"] == "NEW TEXT" and a["price"] == before["price"] and a["cost"] == before["cost"] and a["duration"] == 60
 
 @test("price typed like Excel ($1,234.50) goes in as cents")
 def _():
-    pal.pull(); edit("pbmat_1", price="$1,234.50"); pal_push.apply(*pal_push.plan(), dry=False)
-    assert HCP.items["pbmat_1"]["price"] == 123450
+    pal.pull(); edit("pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", price="$123.45"); push_apply()
+    assert HCP.items["pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]["price"] == 12345
 
 @test("unchanged rows produce no writes (CRLF/spacing round trip)")
 def _():
@@ -133,32 +138,32 @@ def _():
 
 @test("item changed in HCP after the download is skipped, not overwritten")
 def _():
-    pal.pull(); edit("olit_1", description="MINE"); HCP.items["olit_1"]["description"] = "OFFICE CHANGED IT"
-    pal_push.apply(*pal_push.plan(), dry=False)
-    assert HCP.items["olit_1"]["description"] == "OFFICE CHANGED IT" and HCP.patches == 0
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="MINE"); HCP.items["olit_11111111111111111111111111111111"]["description"] = "OFFICE CHANGED IT"
+    push_apply()
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"] == "OFFICE CHANGED IT" and HCP.patches == 0
 
 @test("bad readback stops the run")
 def _():
-    pal.pull(); edit("olit_1", description="A"); edit("olit_2", description="B"); HCP.ignore_patch = True
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="A"); edit("olit_22222222222222222222222222222222", description="B"); HCP.ignore_patch = True
     try:
-        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("did not stop")
+        push_apply(); raise AssertionError("did not stop")
     except SystemExit as e:
         assert "STOPPED" in str(e) and HCP.patches == 1, (str(e), HCP.patches)
 
 @test("undo puts one push back")
 def _():
-    pal.pull(); orig = HCP.items["olit_1"]["description"]
-    edit("olit_1", description="WRONG"); pal_push.apply(*pal_push.plan(), dry=False)
+    pal.pull(); orig = HCP.items["olit_11111111111111111111111111111111"]["description"]
+    edit("olit_11111111111111111111111111111111", description="WRONG"); push_apply()
     run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if not d.endswith("preview")][-1]
     pal_push.restore(os.path.join(TMP, "backups", run), dry=False, mode="undo")
-    assert HCP.items["olit_1"]["description"].replace("\r", "") == orig.replace("\r", "")
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"].replace("\r", "") == orig.replace("\r", "")
 
 @test("restore from original puts EVERYTHING back, including prices")
 def _():
     pal.pull(); snap = copy.deepcopy(HCP.items)
-    edit("olit_1", description="X", price="1.00"); edit("pbmat_1", name="Renamed", cost="0")
-    pal_push.apply(*pal_push.plan(), dry=False)
-    HCP.items["olit_2"]["price"] = 5  # someone else changed it inside HCP too
+    edit("olit_11111111111111111111111111111111", description="X", price="1.00"); edit("pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", name="Renamed", cost="0")
+    push_apply()
+    HCP.items["olit_22222222222222222222222222222222"]["price"] = 5  # someone else changed it inside HCP too
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=False)
     for u in snap:
         for f in ("name", "price", "cost"):
@@ -167,21 +172,21 @@ def _():
 
 @test("restore preview writes nothing")
 def _():
-    pal.pull(); HCP.items["olit_1"]["price"] = 1; n = HCP.patches
+    pal.pull(); HCP.items["olit_11111111111111111111111111111111"]["price"] = 1; n = HCP.patches
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=True)
-    assert HCP.patches == n and HCP.items["olit_1"]["price"] == 1
+    assert HCP.patches == n and HCP.items["olit_11111111111111111111111111111111"]["price"] == 1
 
 @test("restore reports items deleted inside HCP instead of crashing")
 def _():
-    pal.pull(); del HCP.items["olit_2"]
+    pal.pull(); del HCP.items["olit_22222222222222222222222222222222"]
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=False)
 
 @test("restore backs up the current version first, so a restore can be undone")
 def _():
-    pal.pull(); HCP.items["olit_1"]["price"] = 1
+    pal.pull(); HCP.items["olit_11111111111111111111111111111111"]["price"] = 1
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=False)
     runs = [d for d in os.listdir(os.path.join(TMP, "backups")) if d.endswith("_restore")]
-    saved = json.load(open(os.path.join(TMP, "backups", runs[0], "olit_1.json")))
+    saved = json.load(open(os.path.join(TMP, "backups", runs[0], "olit_11111111111111111111111111111111.json")))
     assert saved["item"]["price"] == 1
 
 @test("second download makes a second original, first one kept")
@@ -207,7 +212,7 @@ def _():
 
 @test("clean keeps indents and lined-up spacing")
 def _():
-    pal.pull(); pal_fix.clean(); d = {r["uuid"]: r for r in rows()}["olit_1"]["description"]
+    pal.pull(); pal_fix.clean(); d = {r["uuid"]: r for r in rows()}["olit_11111111111111111111111111111111"]["description"]
     assert d == "Line one\n  indented  table", repr(d)
 
 @test("Excel damage, blank price, 90% price drop, duplicate rows and date-ified names are refused")
@@ -217,44 +222,44 @@ def _():
     rs.append(dict(rs[2])); rs[-1]["description"] = "dup"
     write(rs); todo, refused = pal_push.plan()
     assert todo == [] and len(refused) == 4, (todo, refused)
-    edit("olit_2", name="10-Dec"); todo, refused = pal_push.plan(); assert todo == [] and refused, refused
+    edit("olit_22222222222222222222222222222222", name="10-Dec"); todo, refused = pal_push.plan(); assert todo == [] and refused, refused
 
 @test("a write that quietly resets another field is caught and stops")
 def _():
-    pal.pull(); HCP.reset_on_patch = True; edit("olit_1", description="X")
+    pal.pull(); HCP.reset_on_patch = True; edit("olit_11111111111111111111111111111111", description="X")
     try:
-        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("not caught")
+        push_apply(); raise AssertionError("not caught")
     except SystemExit as e:
         assert "STOPPED" in str(e)
 
 @test("HCP throttling is waited out, not a crash")
 def _():
-    pal.pull(); edit("olit_1", description="Y"); HCP.throttle_next = 1
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="Y"); HCP.throttle_next = 1
     import pal_push as pp; old = pp.time.sleep; pp.time.sleep = lambda s: None
     try:
-        pal_push.apply(*pal_push.plan(), dry=False)
+        push_apply()
     finally:
         pp.time.sleep = old
-    assert HCP.items["olit_1"]["description"] == "Y"
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"] == "Y"
 
 @test("undo leaves alone anything changed again after that push")
 def _():
-    pal.pull(); edit("olit_1", description="PUSHED"); pal_push.apply(*pal_push.plan(), dry=False)
-    HCP.items["olit_1"]["description"] = "OFFICE EDIT AFTER"
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="PUSHED"); push_apply()
+    HCP.items["olit_11111111111111111111111111111111"]["description"] = "OFFICE EDIT AFTER"
     run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if not d.endswith("preview")][-1]
     pal_push.restore(os.path.join(TMP, "backups", run), dry=False, mode="undo")
-    assert HCP.items["olit_1"]["description"] == "OFFICE EDIT AFTER"
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"] == "OFFICE EDIT AFTER"
 
 @test("restore puts back exact line endings and edge spaces")
 def _():
-    pal.pull(); exact = HCP.items["olit_1"]["description"]; exact3 = HCP.items["pbmat_1"]["description"]
-    HCP.items["olit_1"]["description"] = "changed"; HCP.items["pbmat_1"]["description"] = "changed"
+    pal.pull(); exact = HCP.items["olit_11111111111111111111111111111111"]["description"]; exact3 = HCP.items["pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]["description"]
+    HCP.items["olit_11111111111111111111111111111111"]["description"] = "changed"; HCP.items["pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]["description"] = "changed"
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=False)
-    assert HCP.items["olit_1"]["description"] == exact and HCP.items["pbmat_1"]["description"] == exact3
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"] == exact and HCP.items["pbmat_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]["description"] == exact3
 
 @test("restore without --apply (dry) never writes")
 def _():
-    pal.pull(); HCP.items["olit_1"]["price"] = 1; n = HCP.patches
+    pal.pull(); HCP.items["olit_11111111111111111111111111111111"]["price"] = 1; n = HCP.patches
     pal_push.restore(os.path.join(pal.ORIGINALS, originals()[0]), dry=True); assert HCP.patches == n
 
 @test("AI packs carry no prices or costs, and re-packing keeps the AI's answers")
@@ -269,14 +274,14 @@ def _():
     pal.pull(); pal_fix.ai_pack(); import io
     buf = io.StringIO(); w = csv.DictWriter(buf, fieldnames=["uuid", "name", "description"]); w.writeheader()
     NL = chr(10)
-    w.writerow({"uuid": "olit_2", "name": "Furnace Check", "description": "Line A" + NL + "Line B"})
+    w.writerow({"uuid": "olit_22222222222222222222222222222222", "name": "Furnace Check", "description": "Line A" + NL + "Line B"})
     open(os.path.join(pal_fix.PACKS, "pack_001_back.csv"), "w", encoding="utf-8").write("```csv" + NL + buf.getvalue() + "```")
-    pal_fix.ai_merge(); assert {r["uuid"]: r for r in rows()}["olit_2"]["description"] == "Line A" + NL + "Line B"
+    pal_fix.ai_merge(); assert {r["uuid"]: r for r in rows()}["olit_22222222222222222222222222222222"]["description"] == "Line A" + NL + "Line B"
 
 @test("downloading again keeps a copy of the old spreadsheet")
 def _():
     import time
-    pal.pull(); edit("olit_1", description="hours of work"); time.sleep(1.1); pal.pull()
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="hours of work"); time.sleep(1.1); pal.pull()
     h = os.path.join(TMP, "spreadsheet_history"); got = [open(os.path.join(h, f), encoding="utf-8-sig").read() for f in os.listdir(h)]
     assert any("hours of work" in g for g in got)
 
@@ -293,8 +298,8 @@ def _():
 
 @test("undo puts back the item whose write failed")
 def _():
-    pal.pull(); orig = HCP.items["olit_1"]["description"]
-    edit("olit_1", description="HALF")
+    pal.pull(); orig = HCP.items["olit_11111111111111111111111111111111"]["description"]
+    edit("olit_11111111111111111111111111111111", description="HALF")
     real = pal_push.fetch; calls = {"n": 0}
     def flaky(s, kind, uuid):
         calls["n"] += 1
@@ -302,6 +307,7 @@ def _():
         if calls["n"] == 2 and it:
             it = dict(it, description="garbled")  # the readback after the write looks wrong
         return it
+    pal_push.apply(*pal_push.plan(), dry=True)  # preview first, with the real readback
     pal_push.fetch = flaky
     try:
         pal_push.apply(*pal_push.plan(), dry=False)
@@ -311,11 +317,11 @@ def _():
         pal_push.fetch = real
     run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if not d.endswith("preview")][-1]
     pal_push.restore(os.path.join(TMP, "backups", run), dry=False, mode="undo")
-    assert HCP.items["olit_1"]["description"] == orig, repr(HCP.items["olit_1"]["description"])
+    assert HCP.items["olit_11111111111111111111111111111111"]["description"] == orig, repr(HCP.items["olit_11111111111111111111111111111111"]["description"])
 
 @test("undo refuses a preview folder (no record of a push)")
 def _():
-    pal.pull(); edit("olit_1", description="P"); pal_push.apply(*pal_push.plan(), dry=True)
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="P"); pal_push.apply(*pal_push.plan(), dry=True)
     run = [d for d in os.listdir(os.path.join(TMP, "backups")) if d.endswith("preview")][0]
     try:
         pal_push.restore(os.path.join(TMP, "backups", run), dry=False, mode="undo"); raise AssertionError("not refused")
@@ -324,7 +330,7 @@ def _():
 
 @test("restore refuses a folder that is not an original download")
 def _():
-    pal.pull(); edit("olit_1", description="P"); pal_push.apply(*pal_push.plan(), dry=False)
+    pal.pull(); edit("olit_11111111111111111111111111111111", description="P"); push_apply()
     run = [d for d in os.listdir(os.path.join(TMP, "backups")) if not d.endswith("preview")][0]
     try:
         pal_push.restore(os.path.join(TMP, "backups", run), dry=False, mode="restore"); raise AssertionError("not refused")
@@ -333,16 +339,16 @@ def _():
 
 @test("if HCP resets a field we did not send, it is put back and the run stops")
 def _():
-    pal.pull(); HCP.reset_on_patch = True; edit("olit_1", description="Z")
+    pal.pull(); HCP.reset_on_patch = True; edit("olit_11111111111111111111111111111111", description="Z")
     real_patch = HCP.patch
     def patch_once(url, json=None, timeout=None):
         r = real_patch(url, json=json); HCP.reset_on_patch = False; return r
     HCP.patch = patch_once
     try:
-        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("not stopped")
+        push_apply(); raise AssertionError("not stopped")
     except SystemExit:
         pass
-    assert HCP.items["olit_1"]["duration"] == 60, HCP.items["olit_1"]["duration"]
+    assert HCP.items["olit_11111111111111111111111111111111"]["duration"] == 60, HCP.items["olit_11111111111111111111111111111111"]["duration"]
 
 
 @test("library renames only when the name means the same job")
@@ -367,18 +373,18 @@ def _():
 
 @test("suggest + accept: only rows marked Y change, old spreadsheet kept")
 def _():
-    HCP.items["olit_9"] = {"uuid": "olit_9", "name": "Replace Thermostat", "description": "", "price": 30000, "cost": 9000}
-    HCP.kind["olit_9"] = "service"
+    HCP.items["olit_99999999999999999999999999999999"] = {"uuid": "olit_99999999999999999999999999999999", "name": "Replace Thermostat", "description": "", "price": 30000, "cost": 9000}
+    HCP.kind["olit_99999999999999999999999999999999"] = "service"
     pal.pull(); pal_library.suggest()
     s = list(csv.DictReader(open(pal_library.SUGG, encoding="utf-8-sig")))
-    row = [x for x in s if x["uuid"] == "olit_9"][0]
+    row = [x for x in s if x["uuid"] == "olit_99999999999999999999999999999999"][0]
     assert row["suggested_name"] == "Thermostat Replacement" and row["suggested_description"]
     row["use_name"] = "Y"  # description left unmarked on purpose
     with open(pal_library.SUGG, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.DictWriter(f, fieldnames=pal_library.SCOLS); w.writeheader(); w.writerows(s)
-    pal_library.accept(); got = {r["uuid"]: r for r in rows()}["olit_9"]
+    pal_library.accept(); got = {r["uuid"]: r for r in rows()}["olit_99999999999999999999999999999999"]
     assert got["name"] == "Thermostat Replacement" and got["description"] == "" and got["price"] == "300.00"
-    todo, refused = pal_push.plan(); assert [t[1] for t in todo] == ["olit_9"] and list(todo[0][3]) == ["name"]
+    todo, refused = pal_push.plan(); assert [t[1] for t in todo] == ["olit_99999999999999999999999999999999"] and list(todo[0][3]) == ["name"]
 
 @test("missing list skips services you already have")
 def _():
@@ -401,8 +407,8 @@ def creating_hcp():
         return base_get(url, params, timeout)
     def post(url, json=None, timeout=None):
         if url.endswith("/categories"):
-            c = {"uuid": f"pbcat_{len(h.cats)}", "name": json["name"]}; h.cats.append(c); return Resp(200, c)
-        u = f"olit_new{len(h.items)}"
+            c = {"uuid": f"pbcat_{len(h.cats):032x}", "name": json["name"]}; h.cats.append(c); return Resp(200, c)
+        u = f"olit_ffff{len(h.items):028x}"
         h.items[u] = dict(json, uuid=u, online_booking_enabled=True); h.kind[u] = "service"
         return Resp(200, {"service": h.items[u]})
     def delete(url, timeout=None):
@@ -422,8 +428,8 @@ def _():
     h = creating_hcp(); pal.pull(); pal_library.missing()
     price_missing({"Duct Cleaning": "$450", "UV Bulb Replacement": "abc"})
     n = len(h.items); pal_create.add(dry=True); assert len(h.items) == n
-    pal_create.add(dry=False)
-    new = [v for k, v in h.items.items() if k.startswith("olit_new")]
+    add_apply()
+    new = [v for k, v in h.items.items() if k.startswith("olit_ffff")]
     assert len(new) == 1 and new[0]["name"] == "Duct Cleaning" and new[0]["price"] == 45000, new
     assert new[0]["online_booking_enabled"] is False, "booking must be turned off"
     assert h.cats and h.cats[0]["name"] == pal_create.CAT_NAME
@@ -431,17 +437,120 @@ def _():
 @test("add: a name you already have is skipped; the category is reused")
 def _():
     h = creating_hcp(); pal.pull(); pal_library.missing()
-    price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=False); pal_create.add(dry=False)
+    price_missing({"Duct Cleaning": "450"}); add_apply(); add_apply()
     assert sum(v["name"] == "Duct Cleaning" for v in h.items.values()) == 1 and len(h.cats) == 1
 
 @test("remove deletes only what that add run created")
 def _():
     h = creating_hcp(); pal.pull(); pal_library.missing()
-    price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=False)
+    price_missing({"Duct Cleaning": "450"}); add_apply()
     run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if d.endswith("_add")][-1]
     before = set(h.items); pal_create.remove(os.path.join(TMP, "backups", run), dry=True); assert set(h.items) == before
     pal_create.remove(os.path.join(TMP, "backups", run), dry=False)
-    assert not [k for k in h.items if k.startswith("olit_new")] and "olit_1" in h.items
+    assert not [k for k in h.items if k.startswith("olit_ffff")] and "olit_11111111111111111111111111111111" in h.items
+
+
+@test("Excel formula injection is neutralized in the spreadsheet and the text survives the round trip")
+def _():
+    evil = '=HYPERLINK("http://evil.example","click")'
+    HCP.items["olit_11111111111111111111111111111111"]["description"] = evil; HCP.items["olit_22222222222222222222222222222222"]["name"] = "-Bullet style name"
+    pal.pull()
+    raw = open(pal.CSV_OUT, encoding="utf-8-sig").read()
+    assert "'=HYPERLINK" in raw and "'-Bullet" in raw, "not defanged on disk"
+    got = {r["uuid"]: r for r in pal.read_csv(pal.CSV_OUT)}
+    assert got["olit_11111111111111111111111111111111"]["description"] == evil and got["olit_22222222222222222222222222222222"]["name"] == "-Bullet style name"
+    assert pal_push.plan() == ([], []), "a round trip must not look like an edit"
+
+
+U1 = "olit_" + "1" * 32
+
+@test("SECURITY: a create that errors after HCP made it leaves no copy behind")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing(); price_missing({"Duct Cleaning": "450"})
+    pal_create.add(dry=True)
+    real_post = h.post
+    def post_then_502(url, json=None, timeout=None):
+        real_post(url, json=json)
+        return Resp(502, {})
+    h.post = lambda url, json=None, timeout=None: (Resp(200, {"uuid": "pbcat_" + "0" * 32, "name": json["name"]})
+                                                  if url.endswith("/categories") else post_then_502(url, json))
+    h.cats.append({"uuid": "pbcat_" + "0" * 32, "name": pal_create.CAT_NAME})
+    base_get = h.get
+    def get(url, params=None, timeout=None):
+        if url.endswith("/services") and (params or {}).get("pricebook_category_uuid", "").startswith("pbcat_"):
+            return Resp(200, {"data": [v for k, v in h.items.items() if k.startswith("olit_ffff")], "total_pages_count": 1})
+        return base_get(url, params, timeout)
+    h.get = get
+    try:
+        pal_create.add(dry=False); raise AssertionError("did not stop")
+    except SystemExit as e:
+        assert "Nothing was left behind" in str(e), str(e)
+    assert not [k for k in h.items if k.startswith("olit_ffff")], "a copy was left in HCP"
+
+@test("SECURITY: the list cannot change between preview and send")
+def _():
+    pal.pull(); edit(U1, description="PREVIEWED"); pal_push.apply(*pal_push.plan(), dry=True)
+    edit(U1, description="SNUCK IN AFTER"); n = HCP.patches
+    try:
+        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("not refused")
+    except SystemExit as e:
+        assert "Preview again" in str(e) and HCP.patches == n
+    h = creating_hcp(); pal_library.missing(); price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=True)
+    price_missing({"Duct Cleaning": "1"})
+    try:
+        pal_create.add(dry=False); raise AssertionError("not refused")
+    except SystemExit as e:
+        assert "Preview again" in str(e)
+
+@test("SECURITY: negative prices and 10x price jumps are refused")
+def _():
+    pal.pull(); edit(U1, price="-5"); assert pal_push.plan()[0] == [] and pal_push.plan()[1]
+    edit(U1, price="2290.01"); assert pal_push.plan()[0] == [] and pal_push.plan()[1]
+    edit(U1, price="-$-5"); assert pal_push.plan()[0] == []
+
+@test("SECURITY: a tampered id can never reach a web address or a file name")
+def _():
+    pal.pull(); snap = json.load(open(pal.SNAP)); bad = "olit_x/../../evil"
+    snap["rows"][bad] = dict(snap["rows"][U1], uuid=bad); json.dump(snap, open(pal.SNAP, "w"))
+    rs = rows(); rs.append(dict(rs[0], uuid=bad, description="z")); write(rs)
+    try:
+        pal_push.plan(); raise AssertionError("bad id accepted")
+    except SystemExit as e:
+        assert "does not look like an HCP id" in str(e)
+
+@test("SECURITY: remove refuses any folder that is not an add run, and leaves repriced items")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing(); price_missing({"Duct Cleaning": "450"}); add_apply()
+    run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if d.endswith("_add")][-1]
+    other = os.path.join(TMP, "backups", "fake_push"); os.makedirs(other, exist_ok=True)
+    shutil.copy(os.path.join(TMP, "backups", run, "log.json"), other)
+    try:
+        pal_create.remove(other, dry=False); raise AssertionError("not refused")
+    except SystemExit as e:
+        assert "not an add run" in str(e)
+    k = [k for k in h.items if k.startswith("olit_ffff")][0]; h.items[k]["price"] = 99900
+    pal_create.remove(os.path.join(TMP, "backups", run), dry=False); assert k in h.items
+
+@test("SECURITY: login token never follows a redirect; login lives outside the tool folder")
+def _():
+    src = open(os.path.join(SRC, "pal.py"), encoding="utf-8").read()
+    assert "s.max_redirects = 0" in src
+    assert not os.path.abspath(pal.PROFILE).startswith(os.path.abspath(SRC)), pal.PROFILE
+
+@test("paging stops if HCP repeats the same page")
+def _():
+    loop = FakeHCP(); loop.get = lambda url, params=None, timeout=None: Resp(200, {"data": [{"uuid": "x"}] * pal.PAGE, "total_pages_count": 99})
+    assert len(pal.paged(loop, "x", {})) == pal.PAGE
+
+@test("stale suggestions are not applied after the item changed")
+def _():
+    HCP.items["olit_" + "9" * 32] = {"uuid": "olit_" + "9" * 32, "name": "Replace Thermostat", "description": "", "price": 30000, "cost": 9000}
+    HCP.kind["olit_" + "9" * 32] = "service"
+    pal.pull(); pal_library.suggest(); s = pal.read_csv(pal_library.SUGG)
+    for x in s: x["use_name"] = "Y"
+    pal.write_csv(pal_library.SUGG, s, pal_library.SCOLS)
+    edit("olit_" + "9" * 32, name="Thermostat Swap (renamed since)"); pal_library.accept()
+    assert {r["uuid"]: r for r in rows()}["olit_" + "9" * 32]["name"] == "Thermostat Swap (renamed since)"
 
 
 print()
