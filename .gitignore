@@ -1,0 +1,14 @@
+hcp_profile/
+pricebook.csv
+pricebook_snapshot.json
+backups/
+original_backups/
+spreadsheet_history/
+ai_packs/
+.setup_done
+.agreed
+_test_push.py
+_test_pull.py
+_orig_pricebook.csv
+__pycache__/
+_test_live.py
