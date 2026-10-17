@@ -14,6 +14,17 @@ STEPS = [
     ("Clean up descriptions (automatic)", ["pal_fix.py", "clean"],
      "Fixes garbled characters, trailing spaces and extra blank lines; your spacing and tables are kept. Nothing goes to HCP yet. "
      "Recommendation: always run this first, it is safe and quick."),
+    ("Suggest better names and descriptions (built-in library)", ["pal_library.py", "suggest"],
+     "Matches your services to a library of clear, customer-friendly upfront names and descriptions. "
+     "A new name is only suggested when it means exactly the same job, and a description only where yours "
+     "is empty or very short. Sends nothing to HCP. Recommendation: open suggestions.csv and put Y only on "
+     "the ones you like."),
+    ("Take the suggestions I marked Y", ["pal_library.py", "accept"],
+     "Copies the suggestions you marked Y into pricebook.csv. Your old spreadsheet is saved first."),
+    ("Show common services I may be missing", ["pal_library.py", "missing"],
+     "Lists common HVAC and water heater services from the library that are not in your price book, with "
+     "descriptions ready to use. Check each one, you may have it under another name. Add the ones you offer "
+     "inside HCP with your own prices, or contact Dave to have them added."),
     ("Rewrite descriptions with ChatGPT or Claude", ["pal_fix.py", "ai-pack"],
      "Makes small paste-ready files in the ai_packs folder. Paste one into a free ChatGPT or Claude chat, "
      "save its answer as pack_001_back.csv, and so on. Recommendation: start with one pack and read the "
@@ -89,9 +100,9 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.0 Basic   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.1 Basic   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
-           "Nothing reaches Housecall Pro until step 7. Every download saves a permanent original backup, and every change is backed up first. "
+           "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",
            "START HERE")
     while True:

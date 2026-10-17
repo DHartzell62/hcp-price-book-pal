@@ -149,7 +149,7 @@ def pull():
     n = sum(r["type"] == "service" for r in rows)
     print(f"\nDone: {n} services, {len(rows) - n} materials -> {CSV_OUT}")
     print(f"Your untouched original is saved in {keep}")
-    print("Keep that folder. It is how you put everything back (menu step 9).")
+    print("Keep that folder. It is how you put everything back (menu: Put EVERYTHING back the way it was).")
     print("Edit pricebook.csv, keep the uuid and type columns as they are, then preview with: python pal_push.py --preview")
 
 

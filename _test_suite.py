@@ -4,10 +4,10 @@ import copy, csv, json, os, shutil, stat, sys, tempfile, traceback
 
 TMP = tempfile.mkdtemp(prefix="pal_test_")
 SRC = os.path.dirname(os.path.abspath(__file__))
-for f in ("pal.py", "pal_push.py", "pal_fix.py"):
+for f in ("pal.py", "pal_push.py", "pal_fix.py", "pal_library.py", "library_hvac.py"):
     shutil.copy(os.path.join(SRC, f), TMP)
 sys.path.insert(0, TMP)
-import pal, pal_push, pal_fix  # noqa: E402  (the copies in TMP, so files land in TMP)
+import pal, pal_push, pal_fix, pal_library, library_hvac  # noqa: E402  (the copies in TMP, so files land in TMP)
 
 BASE = pal.BASE
 
@@ -343,6 +343,49 @@ def _():
     except SystemExit:
         pass
     assert HCP.items["olit_1"]["duration"] == 60, HCP.items["olit_1"]["duration"]
+
+
+@test("library renames only when the name means the same job")
+def _():
+    sm = pal_library.same_meaning
+    assert sm("Replace Thermostat", "Thermostat Replacement")
+    assert sm("Clean Flame Sensor", "Flame Sensor Cleaning")
+    assert not sm("Compressor Replacement - Ice Machine", "Compressor Replacement")
+    assert not sm("Contactor Replacement - Labor", "Contactor Replacement")
+    assert not sm("Mini-Split Indoor Coil Cleaning", "Evaporator Coil Replacement")
+    assert not sm("Gas Valve Replacement - Tank Water Heater", "Furnace Gas Valve Replacement")
+    assert not sm("OEM Blower Wheel Replacement", "Blower Wheel Replacement")
+
+@test("library descriptions promise nothing: no prices, warranties, rebates or dashes")
+def _():
+    import re as _re
+    bad = _re.compile(r"\$|\d+ ?%|warrant|guarantee|rebate|tax credit|free of charge|—|–| - ", _re.I)
+    hits = [e["name"] for e in library_hvac.ENTRIES if bad.search(e["description"]) or bad.search(e["name"])]
+    assert not [h for h in hits if h != "Free Replacement Estimate"], hits
+    names = [e["name"] for e in library_hvac.ENTRIES]
+    assert len(names) == len(set(names)), "duplicate library names"
+
+@test("suggest + accept: only rows marked Y change, old spreadsheet kept")
+def _():
+    HCP.items["olit_9"] = {"uuid": "olit_9", "name": "Replace Thermostat", "description": "", "price": 30000, "cost": 9000}
+    HCP.kind["olit_9"] = "service"
+    pal.pull(); pal_library.suggest()
+    s = list(csv.DictReader(open(pal_library.SUGG, encoding="utf-8-sig")))
+    row = [x for x in s if x["uuid"] == "olit_9"][0]
+    assert row["suggested_name"] == "Thermostat Replacement" and row["suggested_description"]
+    row["use_name"] = "Y"  # description left unmarked on purpose
+    with open(pal_library.SUGG, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=pal_library.SCOLS); w.writeheader(); w.writerows(s)
+    pal_library.accept(); got = {r["uuid"]: r for r in rows()}["olit_9"]
+    assert got["name"] == "Thermostat Replacement" and got["description"] == "" and got["price"] == "300.00"
+    todo, refused = pal_push.plan(); assert [t[1] for t in todo] == ["olit_9"] and list(todo[0][3]) == ["name"]
+
+@test("missing list skips services you already have")
+def _():
+    pal.pull(); pal_library.missing()
+    names = [r["name"] for r in csv.DictReader(open(pal_library.MISSING, encoding="utf-8-sig"))]
+    assert "AC Tune-Up" not in names and "Furnace Tune-Up" not in names, names  # "Furnace Check" counts as having it
+    assert "Duct Cleaning" in names
 
 
 print()

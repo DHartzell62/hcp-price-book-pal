@@ -178,7 +178,7 @@ def apply(todo, refused, dry):
         entry.update(state="done", status=r.status_code, ok=ok); save_log(run, log)
         if not ok:
             sys.exit(f"STOPPED: {old['name']} did not read back right. Its old version is saved in {run}. "
-                     f"Undo this push from the menu (step 8) to put it back.")
+                     f"Undo this push from the menu (Undo one push) to put it back.")
     print(f"\n{len(todo)} item(s) {'previewed' if dry else 'processed'}, {len(refused)} refused. Backups: {run}")
     if dry and todo:
         print("Looks right? Run: python pal_push.py --apply")

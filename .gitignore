@@ -12,3 +12,5 @@ _test_pull.py
 _orig_pricebook.csv
 __pycache__/
 _test_live.py
+suggestions.csv
+missing_services.csv

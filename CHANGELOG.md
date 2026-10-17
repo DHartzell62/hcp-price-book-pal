@@ -1,5 +1,11 @@
 # Versions
 
+## v1.1 "Basic" (2026-10-17)
+- Built-in library of 88 upfront, customer-friendly HVAC and water heater service names and descriptions.
+- Suggest: renames only when the new name means exactly the same job; fills only empty or very short descriptions. You mark Y in Excel, nothing else changes.
+- Missing list: common services your price book may not have yet, with descriptions ready to use.
+- 34 offline tests.
+
 ## v1.0 "Basic" (2026-10-17)
 - Download services and materials to a spreadsheet; permanent read-only original backup on every download.
 - Clean descriptions; paste-ready packs for ChatGPT, Claude or Gemini (names and descriptions only, never prices).

@@ -1,4 +1,4 @@
-# HCP Price Book Pal v1.0 "Basic"
+# HCP Price Book Pal v1.1 "Basic"
 
 Free from Dave Hartzell, Hartzell's Heat & Air, Kingfisher, Oklahoma. Questions or anything this tool does not do: call 405-375-4822.
 
@@ -9,11 +9,15 @@ It downloads your Housecall Pro price book (services and materials) to a spreads
 2. Double-click `start.bat`. The first run installs what it needs.
 3. Follow the menu top to bottom. Each step shows a tip box first.
 
+## Two ways to use it
+- **Revamp what you have:** clean up descriptions, take better names and descriptions from the built-in library, or have ChatGPT or Claude rewrite them.
+- **Build what is missing:** see common services your price book may not have yet, with descriptions ready to use. Add them inside HCP with your own prices, or contact Dave to have them added.
+
 ## Your login stays yours
 Step 1 opens HCP's own login page in a browser. You type your password there. The tool keeps the login on your computer (the `hcp_profile` folder) and sends it nowhere else. Delete that folder to log out.
 
 ## Safety
-- Nothing goes to HCP until step 7, and step 7 asks you to type YES.
+- Nothing goes to HCP until you pick "Send my changes", see the preview, and type YES.
 - Only the name, description, price and cost of rows you changed are written. New rows are ignored: this tool edits, it never creates or deletes.
 - If something changed in HCP since your download, that row is skipped, not overwritten.
 - Every item is backed up before it changes (`backups` folder) and read back after. Step 8 undoes a push.
