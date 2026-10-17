@@ -695,6 +695,12 @@ def _():
     assert pal_vendor.money("1e9") is None and pal_vendor.money("inf") is None and pal_vendor.money("1,234.50") == 1234.5
 
 
+@test("two downloads in the same second each keep their own original backup")
+def _():
+    pal.pull(); pal.pull(); pal.pull()
+    assert len(originals()) == 3, originals()
+
+
 print()
 for n, r, why in results:
     print(f"{r}  {n}")

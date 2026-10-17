@@ -1,5 +1,10 @@
 # Versions
 
+## v1.4.1 (2026-10-17)
+- Menu option E opens your email with a message to Dave Hartzell (subject: HCP Price Book Pal). Contact is email only.
+- The Hartzell's Heat & Air logo is the program's icon.
+- Fixed: two downloads in the same second could collide on the original-backup folder (this was the rare test failure).
+
 ## v1.4 (2026-10-17) - supplier price ingestion, three trades, installer
 - Ingestion inbox: drop a supplier price sheet (Excel, CSV, or text PDF) in the inbox folder; parts match by part number.
 - Proposals keep your current markup; each Excel tab is read with its own headings; List/MSRP/retail columns are never used as cost.
@@ -45,4 +50,4 @@
 
 ## Planned
 - v2.0 "Auto": the user's own AI key rewrites descriptions automatically.
-- v3.0 "Pro": vendor price sheets, markup formulas, new items, estimate templates. Contact Dave Hartzell, 405-375-4822.
+- v3.0 "Pro": vendor price sheets, markup formulas, new items, estimate templates. Email Dave Hartzell, dave@hartzellsheatair.com.

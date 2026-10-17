@@ -271,7 +271,7 @@ def restore(folder, dry, mode="restore"):
     if dry and n:
         print("Looks right? Run the same command with --apply.")
     if gone:
-        print("Items deleted inside HCP have to be re-added by hand. Need help? Call Dave Hartzell, 405-375-4822.")
+        print("Items deleted inside HCP have to be re-added by hand. Need help? Email Dave Hartzell, dave@hartzellsheatair.com.")
 
 
 def main():

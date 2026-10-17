@@ -2,7 +2,7 @@
 import os, subprocess, sys, textwrap
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DAVE = "Dave Hartzell, Hartzell's Heat & Air, Kingfisher OK: call 405-375-4822"
+DAVE = "Dave Hartzell, Hartzell's Heat & Air, Kingfisher OK: email dave@hartzellsheatair.com"
 
 STEPS = [
     ("Log into Housecall Pro", ["pal.py", "login"],
@@ -76,11 +76,24 @@ def bubble(text, title="TIP"):
     print("  +" + "-" * (w - 2) + "+")
 
 
+EMAIL = "dave@hartzellsheatair.com"
+SUBJECT = "HCP Price Book Pal"
+
+
+def email_dave():
+    """Open the user's own email program with a new message to Dave, subject line already filled in."""
+    import webbrowser
+    from urllib.parse import quote
+    webbrowser.open(f"mailto:{EMAIL}?subject={quote(SUBJECT)}")
+    print(f"  Opening your email program with a message to {EMAIL} (subject: {SUBJECT}).")
+    print("  If nothing opens, just send an email to that address.")
+
+
 def contact():
-    bubble("This tool downloads your price book, cleans and rewrites descriptions, and pushes your "
-           "edits back with a backup. Anything else, like bulk price increases by formula, matching "
-           "vendor price sheets, new items, estimate templates, or a question about how to set it up: "
-           f"contact {DAVE}.", "NEED SOMETHING ELSE?")
+    bubble("This tool downloads your price book, cleans and rewrites descriptions, reads supplier price "
+           "sheets, and sends your edits back with a backup. For anything else (price increases by formula, "
+           "estimate templates, setting it up for you, or the other tools in the README) email Dave. "
+           f"Type E at the menu to open an email to {EMAIL}.", "NEED SOMETHING ELSE?")
 
 
 def run(args):
@@ -118,7 +131,7 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.4   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.4.1   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
            "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",
@@ -128,10 +141,13 @@ def main():
         for i, (name, _, _) in enumerate(STEPS, 1):
             print(f"   {i}. {name}")
         print(f"   {len(STEPS) + 1}. Help / contact Dave")
+        print(f"   E. Email Dave ({EMAIL})")
         print("   0. Quit")
         c = input("\n  Pick a number: ").strip()
         if c == "0":
             return
+        if c.upper() == "E":
+            email_dave(); continue
         if c == str(len(STEPS) + 1):
             contact(); continue
         if not c.isdigit() or not 1 <= int(c) <= len(STEPS):

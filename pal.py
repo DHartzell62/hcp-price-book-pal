@@ -195,8 +195,13 @@ def pull():
     r, w = walk(s, f"{BASE}/material_categories", f"{BASE}/materials", "material_category_uuid", roots, "material")
     rows += r; raw += w
     # Permanent copy of exactly what HCP had, before anyone edits anything. Read-only, never overwritten.
-    keep = os.path.join(ORIGINALS, datetime.now().strftime("%Y-%m-%d_%H%M%S"))
-    os.makedirs(keep)
+    stamp = os.path.join(ORIGINALS, datetime.now().strftime("%Y-%m-%d_%H%M%S"))
+    for i in range(1000):  # two downloads in the same second must never collide or overwrite
+        keep = stamp + (f"_{i}" if i else "")
+        try:
+            os.makedirs(keep); break
+        except FileExistsError:
+            continue
     full = os.path.join(keep, "full_pricebook_from_hcp.json")
     json.dump({"pulled_at": datetime.now().isoformat(timespec="seconds"), "items": raw},
               open(full, "x", encoding="utf-8"), ensure_ascii=True, indent=1)

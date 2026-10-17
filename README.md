@@ -1,7 +1,7 @@
-# HCP Price Book Pal v1.4
+# HCP Price Book Pal v1.4.1
 
 A free tool for Housecall Pro users, from Dave Hartzell, Hartzell's Heat & Air, Kingfisher, Oklahoma.
-Questions, or anything this tool does not do: call 405-375-4822.
+Questions, or anything this tool does not do: email dave@hartzellsheatair.com.
 
 It downloads your Housecall Pro price book (services and materials) to a spreadsheet, cleans up and rewrites
 the descriptions, reads your supplier's price sheets, adds services you are missing, and sends your approved
@@ -33,7 +33,7 @@ The tool opens HCP's own login page in a browser and you type your password ther
 - Prices that jump more than 10 times or drop more than 90%, negative prices and spreadsheet damage from Excel are refused.
 
 ## More tools for your shop
-I run my own HVAC company on tools I built for it. If you want any of these set up for your shop, call me at 405-375-4822. These are custom setups, not part of this free download.
+I run my own HVAC company on tools I built for it. If you want any of these set up for your shop, email me at dave@hartzellsheatair.com. These are custom setups, not part of this free download.
 
 **More for Housecall Pro**
 - Call checker: missed calls and which calls booked, from your HCP call recordings
@@ -62,4 +62,4 @@ I run my own HVAC company on tools I built for it. If you want any of these set 
 This uses the same private connection HCP's website uses. It is not made, supported or approved by Housecall Pro, and HCP can change their site and break it. Use it at your own risk, try a few items first, and check your price book in HCP after. The first run asks you to agree that you are responsible for your account and your prices.
 
 ## License
-Free to use and improve for your own business under the PolyForm Noncommercial License 1.0.0 (see LICENSE.md). You may not sell it or offer it as a paid product or service. For anything else, contact Dave Hartzell, 405-375-4822.
+Free to use and improve for your own business under the PolyForm Noncommercial License 1.0.0 (see LICENSE.md). You may not sell it or offer it as a paid product or service. For anything else, email Dave Hartzell, dave@hartzellsheatair.com.

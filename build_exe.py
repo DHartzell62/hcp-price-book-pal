@@ -47,7 +47,7 @@ def main():
         sys.exit("installer/launcher.py missing")
     py = make_venv()
     cmd = [py, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--console",
-           "--name", NAME, "--distpath", DIST, "--workpath", WORK, "--specpath", WORK,
+           "--name", NAME, "--icon", os.path.join(INST, "hartzell_logo.ico"), "--distpath", DIST, "--workpath", WORK, "--specpath", WORK,
            "--collect-all", "playwright", "--collect-all", "certifi"]
     for m in sorted(hidden):
         cmd += ["--hidden-import", m]
