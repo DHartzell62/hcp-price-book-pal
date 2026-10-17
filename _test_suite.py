@@ -4,7 +4,7 @@ import copy, csv, json, os, shutil, stat, sys, tempfile, traceback
 
 TMP = tempfile.mkdtemp(prefix="pal_test_")
 SRC = os.path.dirname(os.path.abspath(__file__))
-for f in ("pal.py", "pal_push.py", "pal_fix.py", "pal_library.py", "library_hvac.py", "pal_create.py"):
+for f in ("pal.py", "pal_push.py", "pal_fix.py", "pal_library.py", "library_hvac.py", "library_plumbing.py", "library_electrical.py", "pal_create.py", "pal_vendor.py"):
     shutil.copy(os.path.join(SRC, f), TMP)
 sys.path.insert(0, TMP)
 import pal, pal_push, pal_fix, pal_library, library_hvac  # noqa: E402  (the copies in TMP, so files land in TMP)
@@ -603,6 +603,96 @@ def _():
     pal.pull(); got = {r["uuid"]: r for r in pal.read_csv(pal.CSV_OUT)}[U1]
     assert got["name"] == "'Quoted name" and got["description"] == "'=not a formula", got
     assert pal_push.plan() == ([], [])
+
+
+import pal_vendor  # noqa: E402
+PM = "pbmat_" + "a" * 32
+
+def vendor_sheet(lines, name="sheet.csv"):
+    p = os.path.join(TMP, name)
+    with open(p, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f); w.writerow(["Supplier price list"]); w.writerow([])
+        w.writerow(["Item #", "Description", "List Price", "Net Price"]); w.writerows(lines)
+    return p
+
+@test("VENDOR: picks Net over List, matches messy part numbers, keeps markup, writes nothing to HCP")
+def _():
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull(); n = HCP.patches
+    pal_vendor.match(vendor_sheet([["flt 1625", "Filter", "$30.00", "$7.15"], ["NOPE1", "x", "$1", "$1"]]))
+    u = pal.read_csv(pal_vendor.UPD)
+    assert len(u) == 1 and u[0]["vendor_cost"] == "7.15" and u[0]["current_cost"] == "6.50"
+    assert u[0]["suggested_price"] == f"{19.99 * 7.15 / 6.50:.2f}", u[0]   # same markup as before
+    assert HCP.patches == n and len(pal.read_csv(pal_vendor.NOTIN)) == 1
+
+@test("VENDOR: accept takes only rows marked Y, and only if the item did not change since the match")
+def _():
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull()
+    pal_vendor.match(vendor_sheet([["FLT-1625", "Filter", "$30.00", "$7.15"]]))
+    u = pal.read_csv(pal_vendor.UPD); u[0]["use_cost"] = "Y"; pal.write_csv(pal_vendor.UPD, u, pal_vendor.UCOLS)
+    pal_vendor.accept(); got = {r["uuid"]: r for r in rows()}[PM]
+    assert got["cost"] == "7.15" and got["price"] == "19.99"      # price not marked, not changed
+    todo, refused = pal_push.plan(); assert [t[1] for t in todo] == [PM] and list(todo[0][3]) == ["cost"]
+    edit(PM, cost="9.99"); pal_vendor.accept()                  # item changed since the match: untouched
+    assert {r["uuid"]: r for r in rows()}[PM]["cost"] == "9.99"
+
+@test("VENDOR: big jumps and part numbers shared by items with different costs are flagged")
+def _():
+    HCP.items[PM]["part_number"] = "KIT1"; HCP.items["olit_" + "1" * 32]["part_number"] = "KIT1"
+    HCP.kind.setdefault(PM, "material")
+    other = "pbmat_" + "b" * 32
+    HCP.items[other] = {"uuid": other, "name": "Kit big", "description": "", "price": 90000, "cost": 40000, "part_number": "KIT1"}
+    HCP.kind[other] = "material"
+    pal.pull(); pal_vendor.match(vendor_sheet([["KIT1", "Kit", "$1", "$20.00"]]))
+    u = pal.read_csv(pal_vendor.UPD)
+    assert u and all("several of your items" in x["note"] for x in u), u
+    assert any("check units" in x["note"] for x in u)
+
+@test("VENDOR: reads Excel sheets and the newest file in the inbox")
+def _():
+    import openpyxl, time as _t
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull()
+    os.makedirs(pal_vendor.INBOX, exist_ok=True)
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(["Quote 123"]); ws.append(["Part Number", "Desc", "Your Price"]); ws.append(["FLT-1625", "Filter", 7.15])
+    old = os.path.join(pal_vendor.INBOX, "old.csv"); open(old, "w").write("Item #,Net\nFLT-1625,1.00\n")
+    _t.sleep(1.1); new = os.path.join(pal_vendor.INBOX, "new.xlsx"); wb.save(new)
+    assert pal_vendor.newest_in_inbox() == new
+    pal_vendor.match(new); u = pal.read_csv(pal_vendor.UPD)
+    assert u and u[0]["vendor_cost"] == "7.15", u
+
+
+@test("VENDOR: each Excel tab is read with its own headings; List/MSRP columns are never the cost")
+def _():
+    import openpyxl
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull()
+    wb = openpyxl.Workbook(); a = wb.active; a.title = "Net"
+    a.append(["Item #", "Item Description", "List Price", "Net Price"]); a.append(["FLT-1625", "Filter", 30, 7.15])
+    b = wb.create_sheet("Discontinued"); b.append(["MSRP", "Part #"]); b.append([99, "FLT-1625"])
+    p = os.path.join(TMP, "two_tabs.xlsx"); wb.save(p)
+    pal_vendor.match(p); u = pal.read_csv(pal_vendor.UPD)
+    assert len(u) == 1 and u[0]["vendor_cost"] == "7.15", u
+
+@test("VENDOR: flagged rows need YES typed out; accept refuses if the price changed since the match")
+def _():
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull()
+    pal_vendor.match(vendor_sheet([["FLT-1625", "Filter", "$1", "$30.00"]]))      # +360%: flagged
+    u = pal.read_csv(pal_vendor.UPD); assert "check units" in u[0]["note"]
+    u[0]["use_cost"] = "Y"; pal.write_csv(pal_vendor.UPD, u, pal_vendor.UCOLS); pal_vendor.accept()
+    assert {r["uuid"]: r for r in rows()}[PM]["cost"] == "6.50", "Y alone must not take a flagged row"
+    u[0]["use_cost"] = "YES"; pal.write_csv(pal_vendor.UPD, u, pal_vendor.UCOLS); pal_vendor.accept()
+    assert {r["uuid"]: r for r in rows()}[PM]["cost"] == "30.00"
+    edit(PM, cost="6.50", price="25.00"); u[0]["use_price"] = "YES"; pal.write_csv(pal_vendor.UPD, u, pal_vendor.UCOLS)
+    pal_vendor.accept(); assert {r["uuid"]: r for r in rows()}[PM]["price"] == "25.00", "price changed: must not overwrite"
+
+@test("VENDOR: a cost jump over 10x is refused at send time; duplicate sheet lines and odd money are caught")
+def _():
+    HCP.items[PM]["part_number"] = "FLT-1625"; pal.pull(); edit(PM, cost="80.00")
+    todo, refused = pal_push.plan(); assert not todo and refused, (todo, refused)
+    pal.pull(); pal_vendor.match(vendor_sheet([["FLT-1625", "x", "$1", "$7.00"], ["FLT1625", "case", "$1", "$70.00"],
+                                               ["FLT-1625b", "x", "$1", "1e9"]]))
+    u = pal.read_csv(pal_vendor.UPD)
+    assert u and "more than once" in u[0]["note"], u
+    assert pal_vendor.money("1e9") is None and pal_vendor.money("inf") is None and pal_vendor.money("1,234.50") == 1234.5
 
 
 print()

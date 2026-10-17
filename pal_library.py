@@ -13,7 +13,10 @@ Careful by design:
 """
 import csv, os, re, sys
 from pal import CSV_OUT, COLS, HERE, keep_copy, read_csv, write_csv
-from library_hvac import ENTRIES
+from library_hvac import ENTRIES as _H
+from library_plumbing import ENTRIES as _P
+from library_electrical import ENTRIES as _E
+ENTRIES = _H + _P + _E
 
 SUGG = os.path.join(HERE, "suggestions.csv")
 SCOLS = ["uuid", "current_name", "suggested_name", "use_name", "current_description",
@@ -41,12 +44,20 @@ def same_meaning(current, library_name):
     return bool(c) and not (c - l) and (l - c) <= {"replacement", "installation"}
 
 
+HVAC_CONTEXT = ("furnace", "duct", "flue", "condensate", "refrigerant", "geo", "geothermal", "thermistor", "defrost",
+                "hvac", "heat pump", "air handler", "condenser", "evaporator", "mini split", "ductless", "hwg",
+                "blower", "compressor", "damper", "plenum", "ac", "a/c")
+
+
 def best_match(text):
     """Longest match word found as whole words wins, so 'dual capacitor' beats 'capacitor'."""
     flat = lambda s: " " + re.sub(r"[^a-z0-9&/+\"]+", " ", s.lower()).strip() + " "  # tune-up == tune up
     t = flat(text)
+    ctx = {w for w in HVAC_CONTEXT if f" {w} " in t}
     best, word = None, ""
     for e in ENTRIES:
+        if ctx and e.get("trade") != "HVAC" and not any(f" {w} " in flat(e["name"]) for w in ctx):
+            continue  # "furnace drain trap" is not a sink trap; "duct supply line" is not a sink supply line
         for m in e["match"]:
             if flat(m) in t and len(m) > len(word):
                 best, word = e, m
@@ -108,14 +119,27 @@ def missing():
     """Library services your price book does not have yet, ready for you to price."""
     have = [r["name"] for r in read_csv(CSV_OUT)
             if r["type"] == "service" and not r["name"].upper().startswith("ZZ")]
+    matched = {id(m) for m in (best_match(n)[0] for n in have) if m}
+    # Only list trades this shop already does (at least 3 of its services match that trade's library),
+    # so an HVAC shop is not told it is "missing" a hundred plumbing jobs. --all lists every trade.
+    counts = {}
+    for e in ENTRIES:
+        if id(e) in matched:
+            counts[e["trade"]] = counts.get(e["trade"], 0) + 1
+    trades = ({t for t, c in counts.items() if c >= 3} or {t for t, c in counts.items() if c >= 1}
+              or {e["trade"] for e in ENTRIES})
+    if "--all" in sys.argv:
+        trades = {e["trade"] for e in ENTRIES}
     out = []
     for e in ENTRIES:
-        if any(best_match(n)[0] is e for n in have):
+        if e["trade"] not in trades or id(e) in matched:
             continue
-        out.append({"group": e["group"], "name": e["name"], "description": e["description"], "your_price": "", "your_cost": "", "taxable": ""})
+        out.append({"group": f"{e['trade']}: {e['group']}", "name": e["name"], "description": e["description"],
+                    "your_price": "", "your_cost": "", "taxable": ""})
     keep_copy(MISSING)
     write_csv(MISSING, out, ["group", "name", "description", "your_price", "your_cost", "taxable"])
-    print(f"{len(out)} of {len(ENTRIES)} common services may be missing from your price book. List: {MISSING}")
+    print(f"Trades found in your price book: {', '.join(sorted(trades))} (add --all to see every trade).")
+    print(f"{len(out)} common services may be missing from your price book. List: {MISSING}")
     print("Check each one first: you may already have it under a different name.")
     print("Put your price in your_price on the ones you offer (taxable: Y if you charge tax), then use the menu step 'Add the missing services I priced'.")
 

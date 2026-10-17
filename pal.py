@@ -48,7 +48,7 @@ BASE = "https://pro.housecallpro.com/alpha/pricebook"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
 PAGE = 200
-COLS = ["type", "uuid", "category", "name", "description", "price", "cost"]
+COLS = ["type", "uuid", "category", "name", "description", "price", "cost", "part_number"]  # part_number is read-only here
 
 
 FORMULA_START = ("=", "+", "-", "@", "\t", "\r", "'")  # a leading apostrophe too, so a real one survives
@@ -177,7 +177,7 @@ def walk(s, cat_url, item_url, item_key, roots, kind):
             raw.append({"type": kind, "category": " / ".join(path), "item": it})
             rows.append({"type": kind, "uuid": it["uuid"], "category": " / ".join(path),
                          "name": it.get("name") or "", "description": (it.get("description") or "").replace("\r", ""),
-                         "price": f"{(it.get('price') or 0) / 100:.2f}", "cost": f"{(it.get('cost') or 0) / 100:.2f}"})
+                         "price": f"{(it.get('price') or 0) / 100:.2f}", "cost": f"{(it.get('cost') or 0) / 100:.2f}", "part_number": it.get("part_number") or ""})
         if items:
             print(f"  {len(items):4d} {kind}s  {' / '.join(path)}")
         time.sleep(0.4)

@@ -19,3 +19,10 @@ _test_live_create.py
 *.keep
 .push_preview.json
 .add_preview.json
+
+installer/dist/
+installer/build/
+inbox/
+vendor_updates.csv
+vendor_not_in_pricebook.csv
+_scratch/

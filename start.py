@@ -21,6 +21,14 @@ STEPS = [
      "the ones you like."),
     ("Take the suggestions I marked Y", ["pal_library.py", "accept"],
      "Copies the suggestions you marked Y into pricebook.csv. Your old spreadsheet is saved first."),
+    ("INGESTION: read a supplier price sheet from the inbox", ["pal_vendor.py", "match"],
+     "Put your supplier's price sheet (Excel, CSV or PDF) in the inbox folder next to this tool; the newest "
+     "one is read. Parts are matched by part number, and you get vendor_updates.csv: your cost, their cost, "
+     "the change, and a new price that keeps your current markup. Big jumps and shared part numbers are "
+     "flagged to check. Sends nothing to HCP. Recommendation: mark Y only on rows you have checked."),
+    ("Take the supplier updates I marked Y", ["pal_vendor.py", "accept"],
+     "Copies the costs and prices you marked Y in vendor_updates.csv into pricebook.csv. Your old spreadsheet "
+     "is saved first. Then preview and send as usual."),
     ("Show common services I may be missing", ["pal_library.py", "missing"],
      "Lists common HVAC and water heater services from the library that are not in your price book, with "
      "descriptions ready to use. Check each one, you may have it under another name. Put your own price in "
@@ -110,7 +118,7 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.3.1 Basic   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.4   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
            "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",

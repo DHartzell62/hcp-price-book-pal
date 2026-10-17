@@ -1,5 +1,15 @@
 # Versions
 
+## v1.4 (2026-10-17) - supplier price ingestion, three trades, installer
+- Ingestion inbox: drop a supplier price sheet (Excel, CSV, or text PDF) in the inbox folder; parts match by part number.
+- Proposals keep your current markup; each Excel tab is read with its own headings; List/MSRP/retail columns are never used as cost.
+- Flags: big jumps (box vs each), part numbers shared by several items, duplicate sheet lines, short part numbers, PDF-sourced rows. A flagged row needs YES typed out.
+- Cost now has the same 10x / 90% guard as price. File size, unzipped size, row and page limits on supplier files.
+- Plumbing (57) and electrical (58) libraries; the missing list shows only trades your price book already has.
+- start.bat reinstalls whenever the package list changes, so upgrades get new packages. All packages pinned.
+- Optional no-Python Windows build (build_exe.py). 56 + 8 + 3 offline tests.
+- Scanned (picture) PDF quotes cannot be read; export them as Excel or CSV.
+
 ## v1.3.1 (2026-10-17) - second security review
 - Any failure after a create (bad reply, timeout, expired login) now cleans up; clean-up looks twice and confirms.
 - A preview only unlocks a send when it finishes cleanly, and one preview approves one send.

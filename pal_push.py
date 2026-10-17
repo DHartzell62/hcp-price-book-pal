@@ -110,10 +110,10 @@ def refuse_reason(field, new, old):
         c = cents(new)
         if c is None:
             return f"{field} {new!r} is not a plain dollar amount"
-        if field == "price" and cents(old) and c > cents(old) * 10:
-            return f"price jumps more than 10 times ({old} -> {new}), check for a typo or change it inside HCP"
-        if field == "price" and cents(old) and c < cents(old) * 0.10:
-            return f"price drops over 90% ({old} -> {new}), fix it or change it inside HCP"
+        if cents(old) and c > cents(old) * 10:
+            return f"{field} jumps more than 10 times ({old} -> {new}), check for a typo or change it inside HCP"
+        if cents(old) and c < cents(old) * 0.10:
+            return f"{field} drops over 90% ({old} -> {new}), fix it or change it inside HCP"
     if field == "name" and DATEISH.match((new or "").strip()):
         return f"name {new!r} looks like Excel turned it into a date"
     if field == "description" and len(new or "") >= 32767:
