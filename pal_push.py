@@ -14,8 +14,7 @@ Safety, every time:
   * the full item is backed up before each change, and the WHOLE item is read back after
   * stops at the first thing that does not read back right
 """
-import csv, json, os, re, sys, time
-from datetime import datetime
+import json, os, re, sys, time
 from pal import BASE, CSV_OUT, SNAP, HERE, session, read_csv, safe_uuid, shown, new_run_dir
 import hashlib
 

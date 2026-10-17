@@ -25,7 +25,7 @@ r1 = [["CA-1234", "Run capacitor 35/5", "2", "$12.50", "$25.00"], ["MC-77", "Con
 build(p1, [HDR] and [[HDR] + r1])
 h, rows = read_pdf(p1)
 assert h == HDR, h
-assert rows == [dict(zip(HDR, r)) for r in r1], rows
+assert rows == [dict(zip(HDR, r, strict=True)) for r in r1], rows
 # 2. two pages, repeated header, total rows
 p2 = os.path.join(d, "two.pdf")
 a = [["A-%d" % i, "Part %d" % i, "1", "$%d.00" % i, "$%d.00" % i] for i in range(1, 3)]
@@ -34,7 +34,7 @@ build(p2, [[HDR] + a, PageBreak(), [HDR] + b + [["", "Subtotal", "", "", "$99.00
                                                ["", "Total", "", "", "$104.00"]]])
 h, rows = read_pdf(p2)
 assert h == HDR
-assert rows == [dict(zip(HDR, r)) for r in a + b], rows
+assert rows == [dict(zip(HDR, r, strict=True)) for r in a + b], rows
 assert not any("otal" in str(v) for r in rows for v in r.values())
 # 3. no table
 p3 = os.path.join(d, "none.pdf")

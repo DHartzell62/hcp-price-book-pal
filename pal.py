@@ -137,7 +137,7 @@ def session():
 
 
 def get(s, url, params=None):
-    for i in range(3):
+    for _ in range(3):
         r = s.get(url, params=params, timeout=30)
         if r.status_code in (401, 403):
             sys.exit("HCP refused the login (%s). Run 'python pal.py login' again." % r.status_code)

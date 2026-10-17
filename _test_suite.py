@@ -495,7 +495,7 @@ def _():
         pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("not refused")
     except SystemExit as e:
         assert "Preview again" in str(e) and HCP.patches == n
-    h = creating_hcp(); pal_library.missing(); price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=True)
+    creating_hcp(); pal_library.missing(); price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=True)
     price_missing({"Duct Cleaning": "1"})
     try:
         pal_create.add(dry=False); raise AssertionError("not refused")
@@ -584,7 +584,7 @@ def _():
     HCP.get = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("network down"))
     try:
         pal_push.apply(*pal_push.plan(), dry=True)
-    except Exception:
+    except Exception:  # noqa: S110 - the preview is meant to crash; the next lines check it unlocked nothing
         pass
     HCP.get = HCP_get
     try:

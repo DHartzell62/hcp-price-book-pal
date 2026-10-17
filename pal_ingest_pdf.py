@@ -54,7 +54,7 @@ def read_pdf(path):
                         continue
                     if len(r) < len(head):
                         r = r + [""] * (len(head) - len(r))
-                    rows.append(dict(zip(head, r)))
+                    rows.append(dict(zip(head, r, strict=False)))
     if head is None or not rows:
         sys.exit(NO_TABLE if text else "This PDF is a scanned picture with no readable text. " + NO_TABLE)
     return head, rows

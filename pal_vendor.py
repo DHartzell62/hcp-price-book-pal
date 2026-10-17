@@ -67,7 +67,7 @@ def tables(grid):
         if is_header(row):
             head = row; out.append((head, [])); continue
         if head and any(row):
-            out[-1][1].append(dict(zip(head, row)))
+            out[-1][1].append(dict(zip(head, row, strict=False)))  # short or long rows are allowed here
     return out
 
 
@@ -215,8 +215,10 @@ def accept():
         if not u or u["current_cost"] != f"{money(r['cost']) or 0:.2f}" or u["current_price"] != f"{money(r['price']) or 0:.2f}":
             continue  # missing, or the item's cost or price changed since the match: run match again
         # A flagged row (units, shared part number, PDF, duplicate line) needs YES typed out, not just Y.
-        need = "YES" if u["note"].strip() else "Y"
-        ok = lambda v: v.strip().upper() == "YES" or (need == "Y" and v.strip().upper().startswith("Y"))
+        flagged = bool(u["note"].strip())
+        def ok(v, flagged=flagged):
+            v = v.strip().upper()
+            return v == "YES" or (not flagged and v.startswith("Y"))
         for col in ("use_cost", "use_price"):
             if u[col].strip() and not ok(u[col]):
                 held += 1

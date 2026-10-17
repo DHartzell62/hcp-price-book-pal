@@ -1,5 +1,5 @@
 """Build a no-Python Windows copy of HCP Price Book Pal (PyInstaller, onedir).
-Run: py -3 build_exe.py     Output: installer\dist\HCP_Price_Book_Pal\ (zip that folder to hand out)
+Run: py -3 build_exe.py     Output: installer/dist/HCP_Price_Book_Pal/ (zip that folder to hand out)
 Only the files in SCRIPTS/DOCS are copied in, so no price book, backup, snapshot or login can leak."""
 import ast, os, shutil, subprocess, sys
 
@@ -44,7 +44,7 @@ def main():
     hidden -= LOCAL
     hidden |= {"requests", "openpyxl", "playwright", "playwright.sync_api"}
     if os.path.isfile(os.path.join(HERE, "installer", "launcher.py")) is False:
-        sys.exit("installer\launcher.py missing")
+        sys.exit("installer/launcher.py missing")
     py = make_venv()
     cmd = [py, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--console",
            "--name", NAME, "--distpath", DIST, "--workpath", WORK, "--specpath", WORK,

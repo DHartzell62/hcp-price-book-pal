@@ -11,7 +11,7 @@ Careful by design:
   * a DESCRIPTION is only suggested where yours is empty or very short; a detailed one is never replaced
   * services only; parts and materials are left alone
 """
-import csv, os, re, sys
+import os, re, sys
 from pal import CSV_OUT, COLS, HERE, keep_copy, read_csv, write_csv
 from library_hvac import ENTRIES as _H
 from library_plumbing import ENTRIES as _P

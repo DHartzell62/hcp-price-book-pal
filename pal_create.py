@@ -11,7 +11,6 @@ on by default for new services; this tool turns it off and checks). Turn booking
 price is final. Each run is logged so it can be removed again.
 """
 import hashlib, json, os, sys, time
-from datetime import datetime
 from pal import BASE, HERE, session, paged, read_csv, safe_uuid, shown, new_run_dir
 from pal_push import cents, call, save_log
 from pal_library import MISSING
@@ -83,7 +82,7 @@ def clean_up(s, cat, name, log, run):
     key = " ".join(name.lower().split())
     left, removed = [], []
     try:
-        for attempt in range(2):  # a just-made item can take a moment to show in the list, so look twice
+        for _ in range(2):  # a just-made item can take a moment to show in the list, so look twice
             time.sleep(3)
             for x in paged(s, API + "services", {"pricebook_category_uuid": cat}):
                 if " ".join((x.get("name") or "").lower().split()) == key and x.get("uuid") not in removed + left:
