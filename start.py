@@ -23,8 +23,15 @@ STEPS = [
      "Copies the suggestions you marked Y into pricebook.csv. Your old spreadsheet is saved first."),
     ("Show common services I may be missing", ["pal_library.py", "missing"],
      "Lists common HVAC and water heater services from the library that are not in your price book, with "
-     "descriptions ready to use. Check each one, you may have it under another name. Add the ones you offer "
-     "inside HCP with your own prices, or contact Dave to have them added."),
+     "descriptions ready to use. Check each one, you may have it under another name. Put your own price in "
+     "the your_price column on the ones you offer."),
+    ("Add the missing services I priced", ["pal_create.py", "--apply"],
+     "Adds every row of missing_services.csv that has a price, into one category called 'Added by Price Book "
+     "Pal'. You see the preview first. They are added with online booking OFF, so customers cannot book them "
+     "until you turn it on in HCP. Each add is logged and can be removed again."),
+    ("Remove services I added", "remove",
+     "Deletes the services one add run created, nothing else. Pick that run's folder (it ends in _add inside "
+     "backups). You see a preview first."),
     ("Rewrite descriptions with ChatGPT or Claude", ["pal_fix.py", "ai-pack"],
      "Makes small paste-ready files in the ai_packs folder. Paste one into a free ChatGPT or Claude chat, "
      "save its answer as pack_001_back.csv, and so on. Recommendation: start with one pack and read the "
@@ -100,7 +107,7 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.1 Basic   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.2 Basic   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
            "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",
@@ -120,16 +127,16 @@ def main():
             bubble("Type one of the numbers in the list.", "HELP"); continue
         name, args, tip = STEPS[int(c) - 1]
         bubble(tip, name.upper())
-        if args in ("undo", "restore"):
-            where = "backups" if args == "undo" else "original_backups"
+        if args in ("undo", "restore", "remove"):
+            where = "original_backups" if args == "restore" else "backups"
             folder = input(f"  Paste the folder to restore (it is inside {where}): ").strip().strip('"')
             if not os.path.isdir(os.path.join(HERE, folder)) and not os.path.isdir(folder):
                 bubble(f"That folder was not found. Look inside the {where} folder next to this tool.", "HELP"); continue
             folder = folder if os.path.isdir(folder) else os.path.join(HERE, folder)
-            base = ["pal_push.py", "--" + args, folder]
+            base = (["pal_create.py"] if args == "remove" else ["pal_push.py"]) + ["--" + args, folder]
             preview_then_confirm(base, base + ["--apply"]); continue
         if args[-1] == "--apply":
-            preview_then_confirm(["pal_push.py", "--preview"], args); continue
+            preview_then_confirm(args[:-1] + ["--preview"], args); continue
         run(args)
 
 

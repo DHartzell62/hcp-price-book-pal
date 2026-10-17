@@ -4,7 +4,7 @@ import copy, csv, json, os, shutil, stat, sys, tempfile, traceback
 
 TMP = tempfile.mkdtemp(prefix="pal_test_")
 SRC = os.path.dirname(os.path.abspath(__file__))
-for f in ("pal.py", "pal_push.py", "pal_fix.py", "pal_library.py", "library_hvac.py"):
+for f in ("pal.py", "pal_push.py", "pal_fix.py", "pal_library.py", "library_hvac.py", "pal_create.py"):
     shutil.copy(os.path.join(SRC, f), TMP)
 sys.path.insert(0, TMP)
 import pal, pal_push, pal_fix, pal_library, library_hvac  # noqa: E402  (the copies in TMP, so files land in TMP)
@@ -386,6 +386,62 @@ def _():
     names = [r["name"] for r in csv.DictReader(open(pal_library.MISSING, encoding="utf-8-sig"))]
     assert "AC Tune-Up" not in names and "Furnace Tune-Up" not in names, names  # "Furnace Check" counts as having it
     assert "Duct Cleaning" in names
+
+
+import pal_create  # noqa: E402
+
+def creating_hcp():
+    """FakeHCP that can also create and delete, and (like real HCP) makes new services bookable online."""
+    h = HCP; h.cats = []
+    base_get = h.get
+    def get(url, params=None, timeout=None):
+        params = params or {}
+        if url.endswith("/categories") and params.get("id") == "_root":
+            return Resp(200, {"data": [{"uuid": "sc1", "name": "Svcs"}] + h.cats, "total_pages_count": 1})
+        return base_get(url, params, timeout)
+    def post(url, json=None, timeout=None):
+        if url.endswith("/categories"):
+            c = {"uuid": f"pbcat_{len(h.cats)}", "name": json["name"]}; h.cats.append(c); return Resp(200, c)
+        u = f"olit_new{len(h.items)}"
+        h.items[u] = dict(json, uuid=u, online_booking_enabled=True); h.kind[u] = "service"
+        return Resp(200, {"service": h.items[u]})
+    def delete(url, timeout=None):
+        u = url.rsplit("/", 1)[1]; h.items.pop(u, None); return Resp(200, {})
+    h.get, h.post, h.delete = get, post, delete
+    return h
+
+def price_missing(prices):
+    rs = list(csv.DictReader(open(pal_library.MISSING, encoding="utf-8-sig")))
+    for r in rs:
+        if r["name"] in prices: r["your_price"] = prices[r["name"]]
+    with open(pal_library.MISSING, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=list(rs[0])); w.writeheader(); w.writerows(rs)
+
+@test("add: preview writes nothing; apply creates priced rows with online booking OFF")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing()
+    price_missing({"Duct Cleaning": "$450", "UV Bulb Replacement": "abc"})
+    n = len(h.items); pal_create.add(dry=True); assert len(h.items) == n
+    pal_create.add(dry=False)
+    new = [v for k, v in h.items.items() if k.startswith("olit_new")]
+    assert len(new) == 1 and new[0]["name"] == "Duct Cleaning" and new[0]["price"] == 45000, new
+    assert new[0]["online_booking_enabled"] is False, "booking must be turned off"
+    assert h.cats and h.cats[0]["name"] == pal_create.CAT_NAME
+
+@test("add: a name you already have is skipped; the category is reused")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing()
+    price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=False); pal_create.add(dry=False)
+    assert sum(v["name"] == "Duct Cleaning" for v in h.items.values()) == 1 and len(h.cats) == 1
+
+@test("remove deletes only what that add run created")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing()
+    price_missing({"Duct Cleaning": "450"}); pal_create.add(dry=False)
+    run = [d for d in sorted(os.listdir(os.path.join(TMP, "backups"))) if d.endswith("_add")][-1]
+    before = set(h.items); pal_create.remove(os.path.join(TMP, "backups", run), dry=True); assert set(h.items) == before
+    pal_create.remove(os.path.join(TMP, "backups", run), dry=False)
+    assert not [k for k in h.items if k.startswith("olit_new")] and "olit_1" in h.items
 
 
 print()

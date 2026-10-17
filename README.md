@@ -1,4 +1,4 @@
-# HCP Price Book Pal v1.1 "Basic"
+# HCP Price Book Pal v1.2 "Basic"
 
 Free from Dave Hartzell, Hartzell's Heat & Air, Kingfisher, Oklahoma. Questions or anything this tool does not do: call 405-375-4822.
 
@@ -11,7 +11,7 @@ It downloads your Housecall Pro price book (services and materials) to a spreads
 
 ## Two ways to use it
 - **Revamp what you have:** clean up descriptions, take better names and descriptions from the built-in library, or have ChatGPT or Claude rewrite them.
-- **Build what is missing:** see common services your price book may not have yet, with descriptions ready to use. Add them inside HCP with your own prices, or contact Dave to have them added.
+- **Build what is missing:** see common services your price book may not have yet, with descriptions ready to use. Put in your own price and the tool adds them, with online booking OFF until you turn it on. Each add can be removed again.
 
 ## Your login stays yours
 Step 1 opens HCP's own login page in a browser. You type your password there. The tool keeps the login on your computer (the `hcp_profile` folder) and sends it nowhere else. Delete that folder to log out.

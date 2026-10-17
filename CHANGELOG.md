@@ -1,5 +1,11 @@
 # Versions
 
+## v1.2 "Basic" (2026-10-17)
+- Add the missing services you priced: one category "Added by Price Book Pal", preview first, typed YES.
+- New services are created with online booking OFF and checked (HCP turns booking on by default for new services).
+- Remove services an add run created. Live add and remove tested on a real account.
+- 37 offline tests.
+
 ## v1.1 "Basic" (2026-10-17)
 - Built-in library of 88 upfront, customer-friendly HVAC and water heater service names and descriptions.
 - Suggest: renames only when the new name means exactly the same job; fills only empty or very short descriptions. You mark Y in Excel, nothing else changes.

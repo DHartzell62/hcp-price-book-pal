@@ -112,13 +112,13 @@ def missing():
     for e in ENTRIES:
         if any(best_match(n)[0] is e for n in have):
             continue
-        out.append({"group": e["group"], "name": e["name"], "description": e["description"], "your_price": "", "your_cost": ""})
+        out.append({"group": e["group"], "name": e["name"], "description": e["description"], "your_price": "", "your_cost": "", "taxable": ""})
     keep_copy(MISSING)
     with open(MISSING, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=["group", "name", "description", "your_price", "your_cost"]); w.writeheader(); w.writerows(out)
+        w = csv.DictWriter(f, fieldnames=["group", "name", "description", "your_price", "your_cost", "taxable"]); w.writeheader(); w.writerows(out)
     print(f"{len(out)} of {len(ENTRIES)} common services may be missing from your price book. List: {MISSING}")
     print("Check each one first: you may already have it under a different name.")
-    print("Add the ones you offer inside HCP with your own prices. Want them added for you? Contact Dave Hartzell, 405-375-4822.")
+    print("Put your price in your_price on the ones you offer (taxable: Y if you charge tax), then use the menu step 'Add the missing services I priced'.")
 
 
 if __name__ == "__main__":
