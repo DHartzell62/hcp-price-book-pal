@@ -5,7 +5,7 @@
 - Proposals keep your current markup; each Excel tab is read with its own headings; List/MSRP/retail columns are never used as cost.
 - Flags: big jumps (box vs each), part numbers shared by several items, duplicate sheet lines, short part numbers, PDF-sourced rows. A flagged row needs YES typed out.
 - Cost now has the same 10x / 90% guard as price. File size, unzipped size, row and page limits on supplier files.
-- Plumbing (57) and electrical (58) libraries; the missing list shows only trades your price book already has.
+- Plumbing (62) and electrical (62) libraries, 212 entries in all; the missing list shows only trades your price book already has.
 - start.bat reinstalls whenever the package list changes, so upgrades get new packages. All packages pinned.
 - Optional no-Python Windows build (build_exe.py). 56 + 8 + 3 offline tests.
 - Scanned (picture) PDF quotes cannot be read; export them as Excel or CSV.
