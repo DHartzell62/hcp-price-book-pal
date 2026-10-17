@@ -7,6 +7,12 @@ It downloads your Housecall Pro price book (services and materials) to a spreads
 the descriptions, reads your supplier's price sheets, adds services you are missing, and sends your approved
 changes back into HCP, with a backup and an undo for everything.
 
+## Who it's for
+- **Your price book has gotten messy or stale.** Descriptions that read like part numbers, costs that never changed after your supplier raised prices, common services missing. This tool cleans it up.
+- **You're new to Housecall Pro.** The built-in library gives you about 200 ready-written HVAC, plumbing and electrical services. Put in your own prices and it adds the ones you offer, so you get a starter price book in an afternoon.
+
+It is a **tune-up tool, not a replacement for HCP.** You still manage your price book in Housecall Pro every day. Run this when a supplier sends a new price sheet, once or twice a year to clean up, or when you are setting up. It works alongside HCP from your own computer and adds nothing inside HCP's screens.
+
 ## Download
 Go to **Releases** on the right side of this page and download the newest version:
 - **HCP_Price_Book_Pal_..._Windows_NoPython.zip**: easiest. Unzip it to a folder you can write to (your Desktop or Documents, not Program Files) and double-click `start.bat`.
