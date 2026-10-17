@@ -1,4 +1,4 @@
-# HCP Price Book Pal v1.3 "Basic"
+# HCP Price Book Pal v1.3.1 "Basic"
 
 Free from Dave Hartzell, Hartzell's Heat & Air, Kingfisher, Oklahoma. Questions or anything this tool does not do: call 405-375-4822.
 

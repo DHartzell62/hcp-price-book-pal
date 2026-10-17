@@ -3,7 +3,7 @@
 Free tool from Hartzell's Heat & Air, Kingfisher OK. Runs on YOUR computer with YOUR HCP login.
 Your password is typed into HCP's own login page and never leaves this machine.
 
-  python pal.py login      opens a browser, you log into HCP once (saved in ./hcp_profile)
+  python pal.py login      opens a browser, you log into HCP once (saved outside this folder, under AppData, Local, HCPPriceBookPal)
   python pal.py pull       downloads services + materials to pricebook.csv (+ a snapshot for push)
 
 Then edit pricebook.csv (by hand, or with ChatGPT / Claude, see README.md) and run pal_push.py.
@@ -51,7 +51,7 @@ PAGE = 200
 COLS = ["type", "uuid", "category", "name", "description", "price", "cost"]
 
 
-FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r", "'")  # a leading apostrophe too, so a real one survives
 
 
 def _defang(v):
@@ -215,6 +215,15 @@ def pull():
     print("Edit pricebook.csv, keep the uuid and type columns as they are, then preview with: python pal_push.py --preview")
 
 
+def friendly(fn):
+    """Run a step; if HCP bounces us to its login page (a redirect), say so in plain words."""
+    try:
+        fn()
+    except requests.TooManyRedirects:
+        sys.exit("HCP sent this tool to its login page, so your login has expired. Use 'Log into Housecall Pro' "
+                 "again. Anything already done is in the backups folder.")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-    {"login": login, "logout": logout, "pull": pull}.get(cmd, lambda: print(__doc__))()
+    friendly({"login": login, "logout": logout, "pull": pull}.get(cmd, lambda: print(__doc__)))

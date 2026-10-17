@@ -484,7 +484,7 @@ def _():
     try:
         pal_create.add(dry=False); raise AssertionError("did not stop")
     except SystemExit as e:
-        assert "Nothing was left behind" in str(e), str(e)
+        assert "none found left" in str(e), str(e)
     assert not [k for k in h.items if k.startswith("olit_ffff")], "a copy was left in HCP"
 
 @test("SECURITY: the list cannot change between preview and send")
@@ -551,6 +551,58 @@ def _():
     pal.write_csv(pal_library.SUGG, s, pal_library.SCOLS)
     edit("olit_" + "9" * 32, name="Thermostat Swap (renamed since)"); pal_library.accept()
     assert {r["uuid"]: r for r in rows()}["olit_" + "9" * 32]["name"] == "Thermostat Swap (renamed since)"
+
+
+@test("SECURITY: a crash after HCP created the item still cleans it up")
+def _():
+    h = creating_hcp(); pal.pull(); pal_library.missing(); price_missing({"Duct Cleaning": "450"})
+    pal_create.add(dry=True)
+    h.cats.append({"uuid": "pbcat_" + "0" * 32, "name": pal_create.CAT_NAME}) if not h.cats else None
+    real_call = pal_create.call
+    def broken_readback(s, method, url, **kw):
+        if method == "get" and "/services/olit_ffff" in url and not getattr(broken_readback, "armed", False):
+            broken_readback.armed = True
+            raise ValueError("HCP sent junk")
+        return real_call(s, method, url, **kw)
+    base_get = h.get
+    def get(url, params=None, timeout=None):
+        if url.endswith("/services") and (params or {}).get("pricebook_category_uuid", "").startswith("pbcat_"):
+            return Resp(200, {"data": [v for k, v in h.items.items() if k.startswith("olit_ffff")], "total_pages_count": 1})
+        return base_get(url, params, timeout)
+    h.get = get; pal_create.call = broken_readback
+    try:
+        pal_create.add(dry=False); raise AssertionError("did not stop")
+    except SystemExit as e:
+        assert "none found left" in str(e), str(e)
+    finally:
+        pal_create.call = real_call
+    assert not [k for k in h.items if k.startswith("olit_ffff")]
+
+@test("SECURITY: a preview that crashes does not unlock the send; a send uses up its preview")
+def _():
+    pal.pull(); edit(U1, description="A"); HCP_get = HCP.get
+    HCP.get = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("network down"))
+    try:
+        pal_push.apply(*pal_push.plan(), dry=True)
+    except Exception:
+        pass
+    HCP.get = HCP_get
+    try:
+        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("crashed preview unlocked the send")
+    except SystemExit as e:
+        assert "Preview again" in str(e)
+    push_apply(); n = HCP.patches
+    try:
+        pal_push.apply(*pal_push.plan(), dry=False); raise AssertionError("one preview approved two sends")
+    except SystemExit:
+        assert HCP.patches == n
+
+@test("a real leading apostrophe in HCP survives the spreadsheet round trip")
+def _():
+    HCP.items[U1]["name"] = "'Quoted name"; HCP.items[U1]["description"] = "'=not a formula"
+    pal.pull(); got = {r["uuid"]: r for r in pal.read_csv(pal.CSV_OUT)}[U1]
+    assert got["name"] == "'Quoted name" and got["description"] == "'=not a formula", got
+    assert pal_push.plan() == ([], [])
 
 
 print()

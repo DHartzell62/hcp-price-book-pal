@@ -105,7 +105,7 @@ def repair(s, kind, uuid, before, after, edited):
 
 def refuse_reason(field, new, old):
     if any(e in (new or "") for e in EXCEL_ERRORS):
-        return "looks damaged by Excel (" + new[:20] + ")"
+        return "looks damaged by Excel (" + shown(new[:20]) + ")"
     if field in ("price", "cost"):
         c = cents(new)
         if c is None:
@@ -157,9 +157,9 @@ def apply(todo, refused, dry):
         print("REFUSED", shown(name), "-", why)
     h = hashlib.sha256(json.dumps([[k, u, c] for k, u, _, c in todo], sort_keys=True).encode()).hexdigest()
     stamp = os.path.join(HERE, ".push_preview.json")
-    if dry:
-        json.dump({"hash": h}, open(stamp, "w"))
-    elif not os.path.exists(stamp) or json.load(open(stamp)).get("hash") != h:
+    if dry and os.path.exists(stamp):
+        os.remove(stamp)  # written again only when this preview finishes cleanly
+    if not dry and (not os.path.exists(stamp) or json.load(open(stamp)).get("hash") != h):
         sys.exit("Your spreadsheet changed since your last preview (or there was no preview). Preview again first.")
     run = new_run_dir("_preview" if dry else "")
     s = session(); log = []
@@ -187,8 +187,12 @@ def apply(todo, refused, dry):
             ok = False; repair(s, kind, uuid, live, after, ch)
         entry.update(state="done", status=r.status_code, ok=ok); save_log(run, log)
         if not ok:
-            sys.exit(f"STOPPED: {old['name']} did not read back right. Its old version is saved in {run}. "
+            sys.exit(f"STOPPED: {shown(old['name'])} did not read back right. Its old version is saved in {run}. "
                      f"Undo this push from the menu (Undo one push) to put it back.")
+    if dry:
+        json.dump({"hash": h}, open(stamp, "w"))
+    elif os.path.exists(stamp):
+        os.remove(stamp)  # one preview approves one send
     print(f"\n{len(todo)} item(s) {'previewed' if dry else 'processed'}, {len(refused)} refused. Backups: {run}")
     if dry and todo:
         print("Looks right? Run: python pal_push.py --apply")
@@ -271,7 +275,7 @@ def restore(folder, dry, mode="restore"):
         print("Items deleted inside HCP have to be re-added by hand. Need help? Call Dave Hartzell, 405-375-4822.")
 
 
-if __name__ == "__main__":
+def main():
     a = sys.argv[1:]
     if "--undo" in a or "--restore" in a:
         flag = "--undo" if "--undo" in a else "--restore"
@@ -284,3 +288,8 @@ if __name__ == "__main__":
             print("No changes found between pricebook.csv and your last download.")
         else:
             apply(t, refused, dry="--apply" not in a)
+
+
+if __name__ == "__main__":
+    from pal import friendly
+    friendly(main)

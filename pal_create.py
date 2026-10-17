@@ -80,19 +80,29 @@ def gone(s, u):
 
 def clean_up(s, cat, name, log, run):
     """A create went wrong. Find anything HCP made under that name in our category and remove it, proving it."""
-    left = []
-    for x in paged(s, API + "services", {"pricebook_category_uuid": cat}):
-        if x.get("name") == name:
-            u = safe_uuid(x["uuid"])
-            call(s, "delete", API + "services/" + u); time.sleep(0.5)
-            if not gone(s, u):
-                call(s, "patch", API + "services/" + u, json={"online_booking_enabled": False})
-                left.append(u)
-    log.append({"state": "cleanup", "name": name, "left_in_hcp": left}); save_log(run, log)
+    key = " ".join(name.lower().split())
+    left, removed = [], []
+    try:
+        for attempt in range(2):  # a just-made item can take a moment to show in the list, so look twice
+            time.sleep(3)
+            for x in paged(s, API + "services", {"pricebook_category_uuid": cat}):
+                if " ".join((x.get("name") or "").lower().split()) == key and x.get("uuid") not in removed + left:
+                    u = safe_uuid(x["uuid"])
+                    call(s, "delete", API + "services/" + u); time.sleep(0.5)
+                    if gone(s, u):
+                        removed.append(u); continue
+                    call(s, "patch", API + "services/" + u, json={"online_booking_enabled": False})
+                    still = unwrap(call(s, "get", API + "services/" + u).json()).get("online_booking_enabled")
+                    left.append(f"{u} (online booking {'ON' if still else 'off'})")
+    except BaseException as e:
+        sys.exit(f"STOPPED: adding '{shown(name)}' failed and the clean-up could not finish ({type(e).__name__}). "
+                 f"Open the '{CAT_NAME}' category in HCP and delete '{shown(name)}' if it is there. Log: {run}")
+    log.append({"state": "cleanup", "name": name, "removed": removed, "left_in_hcp": left}); save_log(run, log)
     if left:
-        sys.exit(f"STOPPED: '{shown(name)}' could not be removed from HCP (id {', '.join(left)}). Online booking was "
-                 f"switched off where possible. Delete it inside HCP by hand. Log: {run}")
-    sys.exit(f"STOPPED: adding '{shown(name)}' failed. Nothing was left behind in HCP. Log: {run}")
+        sys.exit(f"STOPPED: '{shown(name)}' could not be removed from HCP: {', '.join(left)}. "
+                 f"Delete it inside HCP by hand. Log: {run}")
+    sys.exit(f"STOPPED: adding '{shown(name)}' failed. {len(removed)} copy(ies) found and removed, none found left in HCP. "
+             f"Check the '{CAT_NAME}' category once to be sure. Log: {run}")
 
 
 def add(dry):
@@ -103,7 +113,8 @@ def add(dry):
         print("Nothing to add: put your price in the your_price column of missing_services.csv first."); return
     h = plan_hash(todo)
     if dry:
-        json.dump({"hash": h}, open(PREVIEW_STAMP, "w"))
+        if os.path.exists(PREVIEW_STAMP):
+            os.remove(PREVIEW_STAMP)  # the stamp is written only when this preview finishes cleanly
     else:
         if not os.path.exists(PREVIEW_STAMP) or json.load(open(PREVIEW_STAMP)).get("hash") != h:
             sys.exit("The list changed since your last preview (or there was no preview). Preview again first.")
@@ -121,26 +132,29 @@ def add(dry):
         body = dict(t, pricebook_category_uuid=cat, online_booking_enabled=False)
         entry = {"state": "attempted", "name": t["name"], "body": body}
         log.append(entry); save_log(run, log)
-        try:
+        ok = False
+        try:  # everything from the create to the final check: any failure at all goes to clean_up
             r = s.post(API + "services", json=body, timeout=30)  # a create is never retried: a retry can make copies
-            u = safe_uuid(unwrap(r.json())["uuid"]) if r.status_code in (200, 201) else None
-        except Exception:
-            u = None
-        if not u:
-            clean_up(s, cat, t["name"], log, run)
-        entry["uuid"] = u; save_log(run, log)
-        time.sleep(1)
-        b = unwrap(call(s, "get", API + "services/" + u).json())
-        if b.get("online_booking_enabled"):
-            call(s, "patch", API + "services/" + u, json={"online_booking_enabled": False})
+            if r.status_code not in (200, 201):
+                raise RuntimeError(f"HCP said {r.status_code}")
+            u = safe_uuid(unwrap(r.json())["uuid"])
+            entry["uuid"] = u; save_log(run, log)
+            time.sleep(1)
             b = unwrap(call(s, "get", API + "services/" + u).json())
-        ok = (b.get("name") == t["name"] and b.get("price") == t["price"] and b.get("cost") == t["cost"]
-              and b.get("online_booking_enabled") is False and b.get("pricebook_category_uuid") == cat)
+            if b.get("online_booking_enabled"):
+                call(s, "patch", API + "services/" + u, json={"online_booking_enabled": False})
+                b = unwrap(call(s, "get", API + "services/" + u).json())
+            ok = (b.get("name") == t["name"] and b.get("price") == t["price"] and b.get("cost") == t["cost"]
+                  and b.get("online_booking_enabled") is False and b.get("pricebook_category_uuid") == cat)
+        except BaseException:
+            ok = False
         entry.update(state="done", ok=ok); save_log(run, log)
         if not ok:
             clean_up(s, cat, t["name"], log, run)
         have.add(t["name"].lower())
-    if not dry and os.path.exists(PREVIEW_STAMP):
+    if dry:
+        json.dump({"hash": h}, open(PREVIEW_STAMP, "w"))
+    elif os.path.exists(PREVIEW_STAMP):
         os.remove(PREVIEW_STAMP)  # one preview approves one run
     print(f"\nDone. {'Previewed' if dry else 'Added'} {len(todo)} service(s) into '{CAT_NAME}'. Log: {run}")
     if dry:
@@ -179,7 +193,7 @@ def remove(folder, dry):
         print("Looks right? Run the same command with --apply.")
 
 
-if __name__ == "__main__":
+def main():
     a = sys.argv[1:]
     if "--remove" in a:
         remove(a[a.index("--remove") + 1], dry="--apply" not in a)
@@ -187,3 +201,8 @@ if __name__ == "__main__":
         add(dry="--apply" not in a)
     else:
         print(__doc__)
+
+
+if __name__ == "__main__":
+    from pal import friendly
+    friendly(main)

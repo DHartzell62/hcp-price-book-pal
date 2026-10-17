@@ -110,7 +110,7 @@ def agreed():
 def main():
     if not agreed():
         return
-    print("\n  HCP PRICE BOOK PAL v1.3 Basic   free from Hartzell's Heat & Air")
+    print("\n  HCP PRICE BOOK PAL v1.3.1 Basic   free from Hartzell's Heat & Air")
     bubble("Work top to bottom: log in, download, clean, (rewrite with AI), preview, send. "
            "Nothing reaches Housecall Pro until you pick 'Send my changes' and type YES. Every download saves a permanent original backup, and every change is backed up first. "
            "This uses the same private connection HCP's own website uses; it is not an HCP product.",

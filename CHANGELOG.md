@@ -1,5 +1,11 @@
 # Versions
 
+## v1.3.1 (2026-10-17) - second security review
+- Any failure after a create (bad reply, timeout, expired login) now cleans up; clean-up looks twice and confirms.
+- A preview only unlocks a send when it finishes cleanly, and one preview approves one send.
+- A real apostrophe at the start of a name survives the spreadsheet round trip.
+- An expired login gives a plain message instead of an error dump. 49 offline tests.
+
 ## v1.3 "Basic" (2026-10-17) - security release
 - Creates are never retried; if one fails, anything HCP made is found and removed, and every delete is confirmed.
 - What you preview is exactly what is sent: an edit saved after the preview is refused.
