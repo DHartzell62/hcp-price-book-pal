@@ -21,3 +21,6 @@ Step 1 opens HCP's own login page in a browser. You type your password there. Th
 
 ## Fine print
 This uses the same private connection HCP's website uses. It is not made or supported by Housecall Pro, and HCP can change their site and break it. Use it at your own risk, try a few items first, and check your price book in HCP after.
+
+## License
+Free to use and improve for your own business under the PolyForm Noncommercial License 1.0.0 (see LICENSE.md). You may not sell it or offer it as a paid product or service. For anything else, contact Dave Hartzell, 405-375-4822.

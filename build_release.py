@@ -3,7 +3,7 @@ Refuses to build if the test suite fails. Run: py -3 build_release.py"""
 import os, subprocess, sys, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FILES = ["pal.py", "pal_push.py", "pal_fix.py", "start.py", "start.bat", "requirements.txt", "README.md", "CHANGELOG.md"]
+FILES = ["pal.py", "pal_push.py", "pal_fix.py", "start.py", "start.bat", "requirements.txt", "README.md", "CHANGELOG.md", "LICENSE.md"]
 OUT = os.path.join(os.path.dirname(HERE), "HCP_Price_Book_Pal.zip")
 
 if subprocess.run([sys.executable, os.path.join(HERE, "_test_suite.py")], capture_output=True).returncode:
